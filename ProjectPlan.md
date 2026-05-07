@@ -7,7 +7,7 @@ Dylan Backend
 Parker Backend
 Jack Frontend
 Tess Frontend
-Jade Animation
+Jade Animation and frontend
 
 
 -----Core Features:
