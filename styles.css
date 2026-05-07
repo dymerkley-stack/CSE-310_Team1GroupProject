@@ -1,0 +1,204 @@
+:root {
+  --bg-1: #fff6e8;
+  --bg-2: #d4f5ef;
+  --panel: #fffdf9;
+  --ink: #2e2a25;
+  --muted: #6b6358;
+  --accent: #e86a33;
+  --accent-soft: #ffd4c2;
+  --physical: #ff7f50;
+  --mental: #4aa6a0;
+  --social: #f0b429;
+  --spiritual: #7e9f4d;
+  --danger: #d64545;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 14%, rgba(255, 214, 194, 0.8), transparent 35%),
+    radial-gradient(circle at 92% 88%, rgba(126, 159, 77, 0.24), transparent 40%),
+    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.app-shell {
+  width: min(960px, 100%);
+  display: grid;
+  gap: 1rem;
+  animation: rise-in 500ms ease;
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: "Baloo 2", "Segoe UI", cursive;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  letter-spacing: 0.02em;
+}
+
+.hero p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  max-width: 72ch;
+}
+
+.eyebrow {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pet-card {
+  border: 2px solid rgba(46, 42, 37, 0.1);
+  border-radius: 20px;
+  background: var(--panel);
+  padding: 1.2rem;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
+
+.pet-stage {
+  text-align: center;
+  padding: 0.6rem;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #ffffff, #fffbf3);
+}
+
+.pet-avatar {
+  font-size: clamp(2.4rem, 9vw, 4.4rem);
+  line-height: 1;
+  font-family: "Baloo 2", "Segoe UI", cursive;
+  animation: floaty 2.3s ease-in-out infinite;
+}
+
+.pet-mood {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.meter-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.meter-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.meter-track {
+  height: 14px;
+  border-radius: 999px;
+  background: #ebe7df;
+  overflow: hidden;
+}
+
+.meter-fill {
+  width: 70%;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 260ms ease;
+}
+
+.meter-fill.physical { background: var(--physical); }
+.meter-fill.mental { background: var(--mental); }
+.meter-fill.social { background: var(--social); }
+.meter-fill.spiritual { background: var(--spiritual); }
+
+.actions {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  color: #1d1c1b;
+  background: var(--accent-soft);
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+button:hover {
+  filter: brightness(0.98);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.secondary {
+  background: #ecebe8;
+}
+
+.utility-row {
+  margin-top: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.streak {
+  margin: 0;
+  font-weight: 700;
+}
+
+.status-text {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #f5f1ea;
+}
+
+.status-text.alert {
+  background: #ffe3e3;
+  color: #761f1f;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .utility-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

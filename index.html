@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wellness Tamagotchi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <p class="eyebrow">CSE 310 Team Project Starter</p>
+      <h1>Wellness Tamagotchi</h1>
+      <p>
+        Keep your pet healthy by completing real-life self-care actions across
+        physical, mental, and social wellness, with optional spiritual care.
+      </p>
+    </header>
+
+    <section class="pet-card" aria-live="polite">
+      <div class="pet-stage">
+        <div id="petAvatar" class="pet-avatar" role="img" aria-label="Your virtual pet">(o^.^o)</div>
+        <p id="petMood" class="pet-mood">Your pet is calm and curious.</p>
+      </div>
+
+      <div class="meter-grid">
+        <article class="meter">
+          <div class="meter-label-row">
+            <span>Physical</span>
+            <span id="physicalValue">70</span>
+          </div>
+          <div class="meter-track"><div id="physicalBar" class="meter-fill physical"></div></div>
+        </article>
+
+        <article class="meter">
+          <div class="meter-label-row">
+            <span>Mental</span>
+            <span id="mentalValue">70</span>
+          </div>
+          <div class="meter-track"><div id="mentalBar" class="meter-fill mental"></div></div>
+        </article>
+
+        <article class="meter">
+          <div class="meter-label-row">
+            <span>Social</span>
+            <span id="socialValue">70</span>
+          </div>
+          <div class="meter-track"><div id="socialBar" class="meter-fill social"></div></div>
+        </article>
+
+        <article class="meter">
+          <div class="meter-label-row">
+            <span>Spiritual (Optional)</span>
+            <span id="spiritualValue">70</span>
+          </div>
+          <div class="meter-track"><div id="spiritualBar" class="meter-fill spiritual"></div></div>
+        </article>
+      </div>
+
+      <div class="actions">
+        <button data-action="physical">I exercised or moved</button>
+        <button data-action="mental">I journaled or reflected</button>
+        <button data-action="social">I connected with someone</button>
+        <button data-action="spiritual">I did a spiritual practice</button>
+      </div>
+
+      <div class="utility-row">
+        <p id="streakText" class="streak">Daily check-ins: 0</p>
+        <button id="resetBtn" class="secondary">Reset Pet</button>
+      </div>
+
+      <p id="statusText" class="status-text">
+        Start by choosing one self-care action you completed today.
+      </p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
