@@ -2,19 +2,21 @@ const initialState = {
   physical: 70,
   mental: 70,
   social: 70,
+  intellectual: 70,
   spiritual: 70,
   checkins: 0,
   gameOver: false,
 };
 
 const state = { ...initialState };
-const wellnessKeys = ["physical", "mental", "social", "spiritual"];
+const wellnessKeys = ["physical", "mental", "social", "intellectual", "spiritual"];
 const DAILY_TASKS_PER_CATEGORY = 2;
 const DAILY_TASKS_KEY = "wellnessDailyTasks";
 const DEFAULT_CATEGORY_POINTS = {
   physical: 18,
   mental: 18,
   social: 20,
+  intellectual: 20,
   spiritual: 18,
 };
 
@@ -37,6 +39,12 @@ const taskPools = {
     { title: "Thank someone", details: "Express appreciation to a person who helped you.", points: 12 },
     { title: "Do one helpful act", details: "Support someone with a small practical action.", points: 16 },
   ],
+  intellectual: [
+    { title: "Finish one course module", details: "Complete one lecture or assignment chunk in a class.", points: 22 },
+    { title: "Review class notes", details: "Summarize your notes for one current course.", points: 16 },
+    { title: "Solve 5 practice problems", details: "Work through a short set of practice questions.", points: 20 },
+    { title: "Attend office hours or tutoring", details: "Ask one question to improve your understanding.", points: 18 },
+  ],
   spiritual: [
     { title: "Practice calm breathing", details: "Take 10 slow breaths and center yourself.", points: 18 },
     { title: "Write one gratitude note", details: "Capture one thing you are grateful for.", points: 14 },
@@ -51,6 +59,7 @@ const bars = {
   physical: document.getElementById("physicalBar"),
   mental: document.getElementById("mentalBar"),
   social: document.getElementById("socialBar"),
+  intellectual: document.getElementById("intellectualBar"),
   spiritual: document.getElementById("spiritualBar"),
 };
 
@@ -58,6 +67,7 @@ const labels = {
   physical: document.getElementById("physicalValue"),
   mental: document.getElementById("mentalValue"),
   social: document.getElementById("socialValue"),
+  intellectual: document.getElementById("intellectualValue"),
   spiritual: document.getElementById("spiritualValue"),
 };
 
@@ -124,6 +134,39 @@ function generateDailyTasks() {
   return tasks;
 }
 
+function fillMissingCategoryTasks(tasks) {
+  const normalizedTasks = [...tasks];
+
+  wellnessKeys.forEach((category) => {
+    const baseCount = normalizedTasks.filter(
+      (task) => task.category === category && !isCustomTask(task)
+    ).length;
+
+    if (baseCount >= DAILY_TASKS_PER_CATEGORY) return;
+
+    const existingTitles = new Set(
+      normalizedTasks
+        .filter((task) => task.category === category)
+        .map((task) => task.title)
+    );
+
+    const fallbackPool = shuffleCopy(taskPools[category]).filter((task) => !existingTitles.has(task.title));
+    const needed = DAILY_TASKS_PER_CATEGORY - baseCount;
+    fallbackPool.slice(0, needed).forEach((task, index) => {
+      normalizedTasks.push({
+        id: `${todayKey()}-${category}-migrated-${index}-${Math.floor(Math.random() * 10000)}`,
+        category,
+        title: task.title,
+        details: task.details,
+        points: task.points,
+        completed: false,
+      });
+    });
+  });
+
+  return normalizedTasks;
+}
+
 function saveDailyTasks() {
   localStorage.setItem(
     DAILY_TASKS_KEY,
@@ -150,7 +193,8 @@ function loadDailyTasks() {
       return;
     }
 
-    dailyTasks = parsed.tasks;
+    dailyTasks = fillMissingCategoryTasks(parsed.tasks);
+    saveDailyTasks();
   } catch {
     dailyTasks = generateDailyTasks();
     saveDailyTasks();
@@ -315,6 +359,7 @@ function gameTick() {
   state.physical = clamp(state.physical - 2);
   state.mental = clamp(state.mental - 1.6);
   state.social = clamp(state.social - 1.8);
+  state.intellectual = clamp(state.intellectual - 1.7);
   state.spiritual = clamp(state.spiritual - 1.3);
 
   if (wellnessKeys.some((key) => state[key] === 0)) {
@@ -331,6 +376,7 @@ function applyAction(action) {
     physical: { physical: 18, mental: 4 },
     mental: { mental: 18, spiritual: 3 },
     social: { social: 20, mental: 3 },
+    intellectual: { intellectual: 20, mental: 4 },
     spiritual: { spiritual: 18, mental: 2 },
   };
 
