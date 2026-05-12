@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Life RPG Task Wireframe</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f2f2f2; padding: 30px; color: #222; }
+    .wireframe { max-width: 1000px; margin: 0 auto; background: white; border: 3px solid #222; }
+    .top-section { padding: 30px; border-bottom: 3px solid #222; text-align: center; }
+    .character-name { font-size: 32px; font-weight: bold; text-decoration: underline; margin-bottom: 8px; }
+    .level { font-size: 22px; margin-bottom: 25px; }
+    .character-box { width: 180px; height: 180px; border: 2px dashed #777; margin: 0 auto 30px; display: flex; align-items: center; justify-content: center; background: #fafafa; }
+    .stick-character { font-size: 80px; line-height: 1; }
+    .stat-bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .stat-card { border: 2px solid #222; padding: 12px; text-align: left; background: #fff; }
+    .stat-label { font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+    .bar { width: 100%; height: 22px; border: 2px solid #222; background: #eee; }
+    .bar-fill { height: 100%; background: #222; }
+    .tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 3px solid #222; }
+    .tab { padding: 15px 8px; text-align: center; border-right: 2px solid #222; font-weight: bold; background: #f7f7f7; }
+    .tab:last-child { border-right: none; }
+    .tab.active { background: white; }
+    .task-area { padding: 30px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #222; padding-bottom: 12px; }
+    .section-header h2 { font-size: 26px; }
+    .add-task-button { border: 2px solid #222; background: white; padding: 10px 16px; font-weight: bold; cursor: pointer; }
+    .task-list { display: grid; gap: 18px; }
+    .task-card { border: 2px solid #222; padding: 18px; display: grid; grid-template-columns: auto 1fr auto; gap: 15px; align-items: start; background: #fafafa; }
+    .checkbox { width: 26px; height: 26px; border: 2px solid #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: white; }
+    .checkbox.complete { background: #222; color: white; }
+    .task-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .task-details { color: #555; line-height: 1.4; }
+    .points { border: 2px solid #222; padding: 8px 12px; font-weight: bold; background: white; white-space: nowrap; }
+    .task-input-wireframe { border: 2px dashed #777; padding: 18px; margin-top: 24px; background: #fff; }
+    .input-row { height: 18px; background: #ddd; margin: 10px 0; width: 100%; }
+    .input-row.short { width: 40%; }
+    @media (max-width: 800px) {
+      .stat-bars, .tabs { grid-template-columns: 1fr; }
+      .tab { border-right: none; border-bottom: 2px solid #222; }
+      .task-card { grid-template-columns: auto 1fr; }
+      .points { grid-column: 2; width: fit-content; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wireframe">
+    <section class="top-section">
+      <div class="character-name">Character Name</div>
+      <div class="level">Level #</div>
+
+      <div class="character-box">
+        <div class="stick-character">☺</div>
+      </div>
+
+      <div class="stat-bars">
+        <div class="stat-card"><div class="stat-label">Mental</div><div class="bar"><div class="bar-fill" style="width: 70%;"></div></div></div>
+        <div class="stat-card"><div class="stat-label">Spiritual</div><div class="bar"><div class="bar-fill" style="width: 45%;"></div></div></div>
+        <div class="stat-card"><div class="stat-label">Physical</div><div class="bar"><div class="bar-fill" style="width: 85%;"></div></div></div>
+        <div class="stat-card"><div class="stat-label">Intellectual</div><div class="bar"><div class="bar-fill" style="width: 55%;"></div></div></div>
+        <div class="stat-card"><div class="stat-label">Social</div><div class="bar"><div class="bar-fill" style="width: 30%;"></div></div></div>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <div class="tab active">Mental</div>
+      <div class="tab">Spiritual</div>
+      <div class="tab">Physical</div>
+      <div class="tab">Intellectual</div>
+      <div class="tab">Social</div>
+    </nav>
+
+    <section class="task-area">
+      <div class="section-header">
+        <h2>Mental Tasks</h2>
+        <button class="add-task-button">+ Add Task</button>
+      </div>
+
+      <div class="task-list">
+        <article class="task-card">
+          <div class="checkbox complete">✓</div>
+          <div>
+            <div class="task-title">Read for 20 minutes</div>
+            <p class="task-details">Task details go here. When marked complete, the points are added to the Mental bar above.</p>
+          </div>
+          <div class="points">+10 pts</div>
+        </article>
+
+        <article class="task-card">
+          <div class="checkbox"></div>
+          <div>
+            <div class="task-title">Write journal reflection</div>
+            <p class="task-details">This is an incomplete task. Checking it off would award points and fill the related progress bar.</p>
+          </div>
+          <div class="points">+20 pts</div>
+        </article>
+      </div>
+
+      <div class="task-input-wireframe">
+        <strong>Add New Subtask Form</strong>
+        <div class="input-row"></div>
+        <div class="input-row"></div>
+        <div class="input-row short"></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
