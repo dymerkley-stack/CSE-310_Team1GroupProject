@@ -58,6 +58,79 @@ body {
   background: var(--panel);
 }
 
+
+/* Add Goal Button Styling */
+.add-goal-container {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.primary-btn {
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--line);
+  padding: 12px 24px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.primary-btn:hover {
+  background: var(--muted);
+}
+
+/* Modal / Form Styling */
+.modal.hidden {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: var(--paper);
+  border: 3px solid var(--line);
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.form-group {
+  margin-top: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.form-group input, 
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid var(--line);
+  font-family: inherit;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 .stick-character {
   font-size: 42px;
   line-height: 1;

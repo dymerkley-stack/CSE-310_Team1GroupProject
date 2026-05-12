@@ -494,3 +494,28 @@ renderTaskList();
 renderTabs();
 render();
 setInterval(gameTick, 12000);
+
+const modal = document.getElementById("goalModal");
+const openModalBtn = document.getElementById("openModalBtn");
+const cancelGoalBtn = document.getElementById("cancelGoalBtn");
+const saveGoalBtn = document.getElementById("saveGoalBtn");
+
+// Open and Close Modal
+openModalBtn.addEventListener("click", () => modal.classList.remove("hidden"));
+cancelGoalBtn.addEventListener("click", () => modal.classList.add("hidden"));
+
+// Handle Saving
+saveGoalBtn.addEventListener("click", () => {
+  const title = document.getElementById("goalTitle").value;
+  const details = document.getElementById("goalDetails").value;
+
+  if (title && details) {
+    // Uses the activeCategory so the goal appears in the tab you are currently viewing
+    addNewGoal(activeCategory, title, details, 15); 
+    
+    // Reset and close
+    modal.classList.add("hidden");
+    document.getElementById("goalTitle").value = "";
+    document.getElementById("goalDetails").value = "";
+  }
+});
