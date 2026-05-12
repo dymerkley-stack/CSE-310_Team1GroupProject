@@ -66,6 +66,28 @@
       <p id="statusText" class="status-text">
         Start by choosing one self-care action you completed today.
       </p>
+
+      <div class="add-goal-container">
+  <button id="openModalBtn" class="primary-btn">+ Add Custom Goal</button>
+</div>
+
+<div id="goalModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>New Wellness Goal</h3>
+    <div class="form-group">
+      <label for="goalTitle">Task Name</label>
+      <input type="text" id="goalTitle" placeholder="e.g., Stretching session">
+    </div>
+    <div class="form-group">
+      <label for="goalDetails">Description</label>
+      <textarea id="goalDetails" placeholder="Why does this help?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelGoalBtn" class="secondary">Cancel</button>
+      <button id="saveGoalBtn" class="primary-btn">Add Goal</button>
+    </div>
+  </div>
+</div>
     </section>
   </main>
 
