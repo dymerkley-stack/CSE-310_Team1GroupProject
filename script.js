@@ -11,6 +11,12 @@ const state = { ...initialState };
 const wellnessKeys = ["physical", "mental", "social", "spiritual"];
 const DAILY_TASKS_PER_CATEGORY = 2;
 const DAILY_TASKS_KEY = "wellnessDailyTasks";
+const DEFAULT_CATEGORY_POINTS = {
+  physical: 18,
+  mental: 18,
+  social: 20,
+  spiritual: 18,
+};
 
 const taskPools = {
   physical: [
@@ -64,8 +70,16 @@ const statusText = document.getElementById("statusText");
 const resetBtn = document.getElementById("resetBtn");
 const taskList = document.getElementById("taskList");
 const tabButtons = Array.from(document.querySelectorAll(".tab[data-tab]"));
+const customGoalToggle = document.getElementById("customGoalToggle");
+const customGoalPanel = document.getElementById("customGoalPanel");
+const customGoalForm = document.getElementById("customGoalForm");
+const customGoalLabel = document.getElementById("customGoalLabel");
+const customGoalInput = document.getElementById("customGoalInput");
+const customGoalSubmit = document.getElementById("customGoalSubmit");
+const customGoalHint = document.getElementById("customGoalHint");
 
 let activeCategory = "physical";
+let isCustomGoalPanelOpen = false;
 
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
@@ -158,12 +172,14 @@ function renderTaskList() {
     const checkboxClass = task.completed ? "checkbox complete" : "checkbox";
     const pointsClass = task.completed ? "points complete" : "points";
     const disabled = task.completed || state.gameOver ? "disabled" : "";
+    const safeTitle = escapeHtml(task.title);
+    const safeDetails = escapeHtml(task.details);
 
     card.innerHTML = `
       <button class="${checkboxClass}" data-task-id="${task.id}" data-action="${task.category}" aria-label="Complete ${task.category} task" ${disabled}></button>
       <div>
-        <h3 class="task-title">${task.title}</h3>
-        <p class="task-details">${task.details}</p>
+        <h3 class="task-title">${safeTitle}</h3>
+        <p class="task-details">${safeDetails}</p>
       </div>
       <button class="${pointsClass}" data-task-id="${task.id}" data-action="${task.category}" type="button" aria-label="Complete ${task.category} task for ${task.points} points" ${disabled}>+${task.points} ${toTitleCase(task.category)}</button>
     `;
@@ -174,6 +190,60 @@ function renderTaskList() {
 
 function toTitleCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function isCustomTask(task) {
+  return task.isCustom === true || task.id.includes("-custom-");
+}
+
+function hasCustomGoalForCategory(category) {
+  return dailyTasks.some((task) => task.category === category && isCustomTask(task));
+}
+
+function syncCustomGoalForm() {
+  if (
+    !customGoalForm ||
+    !customGoalLabel ||
+    !customGoalInput ||
+    !customGoalSubmit ||
+    !customGoalHint ||
+    !customGoalToggle ||
+    !customGoalPanel
+  ) {
+    return;
+  }
+
+  const categoryTitle = toTitleCase(activeCategory);
+  const limitReached = hasCustomGoalForCategory(activeCategory);
+
+  customGoalLabel.textContent = categoryTitle;
+  customGoalInput.placeholder = `Example: extra ${activeCategory} goal`;
+  customGoalInput.disabled = limitReached;
+  customGoalSubmit.disabled = limitReached;
+  customGoalToggle.disabled = limitReached;
+  customGoalToggle.textContent = `+ Add ${categoryTitle} Goal`;
+
+  if (limitReached) {
+    isCustomGoalPanelOpen = false;
+  }
+
+  customGoalPanel.hidden = !isCustomGoalPanelOpen;
+  customGoalToggle.setAttribute("aria-expanded", String(isCustomGoalPanelOpen));
+
+  if (limitReached) {
+    customGoalHint.textContent = `You already added your one extra ${categoryTitle} goal for today.`;
+  } else {
+    customGoalHint.textContent = `Add one extra ${categoryTitle} goal for today.`;
+  }
 }
 
 function renderTabs() {
@@ -193,6 +263,8 @@ function renderTabs() {
   if (taskHeader) {
     taskHeader.textContent = `${toTitleCase(activeCategory)} Tasks`;
   }
+
+  syncCustomGoalForm();
 }
 
 function moodText(avg) {
@@ -292,6 +364,32 @@ function completeTask(taskId, sourceButton) {
   }
 }
 
+function addCustomGoal(category, title) {
+  if (!wellnessKeys.includes(category)) return;
+  if (hasCustomGoalForCategory(category)) {
+    statusText.textContent = `You can only add one extra ${toTitleCase(category)} goal per day.`;
+    return;
+  }
+
+  const cleanedTitle = title.trim();
+  if (!cleanedTitle) return;
+
+  dailyTasks.push({
+    id: `${todayKey()}-${category}-custom-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    category,
+    title: cleanedTitle,
+    details: "Custom daily goal added by you.",
+    points: DEFAULT_CATEGORY_POINTS[category],
+    completed: false,
+    isCustom: true,
+  });
+
+  saveDailyTasks();
+  renderTaskList();
+  renderTabs();
+  statusText.textContent = `${toTitleCase(category)} goal added for today.`;
+}
+
 function resetGame() {
   Object.assign(state, initialState);
   statusText.textContent = "Start by choosing one self-care action you completed today.";
@@ -318,9 +416,30 @@ tabButtons.forEach((tab) => {
     const category = tab.getAttribute("data-tab");
     if (!category || category === activeCategory) return;
     activeCategory = category;
+    isCustomGoalPanelOpen = false;
     renderTabs();
   });
 });
+
+if (customGoalToggle) {
+  customGoalToggle.addEventListener("click", () => {
+    if (customGoalToggle.disabled) return;
+    isCustomGoalPanelOpen = !isCustomGoalPanelOpen;
+    syncCustomGoalForm();
+  });
+}
+
+if (customGoalForm) {
+  customGoalForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!(customGoalInput instanceof HTMLInputElement)) return;
+
+    addCustomGoal(activeCategory, customGoalInput.value);
+    customGoalInput.value = "";
+    isCustomGoalPanelOpen = false;
+    syncCustomGoalForm();
+  });
+}
 
 resetBtn.addEventListener("click", resetGame);
 

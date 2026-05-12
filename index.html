@@ -58,6 +58,19 @@
 
       <div id="taskList" class="task-list"></div>
 
+      <section class="custom-goals" aria-labelledby="customGoalsHeader">
+        <h3 id="customGoalsHeader">Add Daily Goals</h3>
+        <button id="customGoalToggle" class="goal-toggle" type="button" aria-expanded="false" aria-controls="customGoalPanel">+ Add Goal</button>
+        <div id="customGoalPanel" class="custom-goal-panel" hidden>
+          <p id="customGoalHint" class="custom-goal-hint">Add one extra Physical goal for today.</p>
+          <form id="customGoalForm" class="add-goal-row">
+            <label id="customGoalLabel" for="customGoalInput">Physical</label>
+            <input id="customGoalInput" name="goalTitle" type="text" placeholder="Example: 5 push-ups" maxlength="100" required />
+            <button id="customGoalSubmit" type="submit" class="secondary">Add</button>
+          </form>
+        </div>
+      </section>
+
       <div class="utility-row">
         <p id="streakText" class="streak">Daily check-ins: 0</p>
         <button id="resetBtn" class="secondary">Reset Pet</button>
