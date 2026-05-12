@@ -1,13 +1,46 @@
+const goalTemplates = {
+  physical: [
+    "Do 5 push-ups",
+    "Walk for 10 minutes",
+    "Stretch for 5 minutes",
+    "Drink a full glass of water",
+  ],
+  mental: [
+    "Write 3 lines in a journal",
+    "Do 2 minutes of deep breathing",
+    "Read 5 pages of a book",
+    "Take a 5-minute no-phone break",
+  ],
+  social: [
+    "Send a kind message to someone",
+    "Call or voice-note a friend",
+    "Share one win from your day",
+    "Ask someone how they are doing",
+  ],
+  spiritual: [
+    "Spend 3 quiet minutes in reflection",
+    "Practice gratitude: list one thing",
+    "Do a short meditation",
+    "Read a meaningful quote or verse",
+  ],
+};
+
+const attributeKeys = ["physical", "mental", "social", "spiritual"];
+
 const initialState = {
-  physical: 70,
-  mental: 70,
-  social: 70,
-  spiritual: 70,
-  checkins: 0,
+  physical: 78,
+  mental: 78,
+  social: 78,
+  spiritual: 78,
+  goalsCompleted: 0,
+  level: 1,
+  xp: 0,
   gameOver: false,
 };
 
 const state = { ...initialState };
+let goals = [];
+let goalIdCounter = 1;
 
 const bars = {
   physical: document.getElementById("physicalBar"),
@@ -28,10 +61,25 @@ const petAvatar = document.getElementById("petAvatar");
 const streakText = document.getElementById("streakText");
 const statusText = document.getElementById("statusText");
 const resetBtn = document.getElementById("resetBtn");
-const actionButtons = Array.from(document.querySelectorAll("[data-action]"));
+const goalList = document.getElementById("goalList");
+const goalForm = document.getElementById("goalForm");
+const goalTextInput = document.getElementById("goalText");
+const goalTypeInput = document.getElementById("goalType");
+const refreshGoalsBtn = document.getElementById("refreshGoalsBtn");
+const levelText = document.getElementById("levelText");
+const xpText = document.getElementById("xpText");
+const xpBar = document.getElementById("xpBar");
 
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
+}
+
+function xpNeededForLevel(level) {
+  return 120 + (level - 1) * 35;
+}
+
+function randomFrom(list) {
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function averageWellness() {
@@ -40,93 +88,186 @@ function averageWellness() {
 
 function moodText(avg) {
   if (state.gameOver) return "Your pet needs help. Reset to try again.";
-  if (avg >= 80) return "Your pet is thriving. Great consistency.";
-  if (avg >= 60) return "Your pet feels good and steady.";
-  if (avg >= 40) return "Your pet is getting worried. Time for a check-in.";
-  return "Your pet feels neglected. Do a wellness action now.";
+  if (avg >= 85) return "Your pet is thriving and energized.";
+  if (avg >= 65) return "Your pet feels steady and supported.";
+  if (avg >= 40) return "Your pet is a bit stressed. Finish a goal soon.";
+  return "Your pet is struggling. Complete a wellness goal now.";
 }
 
 function avatarFace(avg) {
   if (state.gameOver) return "(x_x)";
-  if (avg >= 80) return "(^o^)/";
-  if (avg >= 60) return "(o^.^o)";
+  if (avg >= 85) return "(^o^)/";
+  if (avg >= 65) return "(o^.^o)";
   if (avg >= 40) return "(._.)";
   return "(;_; )";
 }
 
+function getGoalBoosts(type) {
+  const boosts = {
+    physical: { physical: 12, mental: 3 },
+    mental: { mental: 12, spiritual: 2 },
+    social: { social: 13, mental: 2 },
+    spiritual: { spiritual: 12, mental: 2 },
+  };
+
+  return boosts[type] || {};
+}
+
+function createGoal(type, text, xpReward = 30) {
+  return {
+    id: goalIdCounter++,
+    type,
+    text,
+    xpReward,
+    completed: false,
+  };
+}
+
+function generateSuggestedGoals() {
+  const generated = attributeKeys.map((type) => {
+    const randomGoal = randomFrom(goalTemplates[type]);
+    return createGoal(type, randomGoal, 26);
+  });
+
+  goals = generated;
+}
+
+function addXp(amount) {
+  state.xp += amount;
+
+  while (state.xp >= xpNeededForLevel(state.level)) {
+    state.xp -= xpNeededForLevel(state.level);
+    state.level += 1;
+
+    attributeKeys.forEach((key) => {
+      state[key] = clamp(state[key] + 4);
+    });
+
+    statusText.textContent = `Level up! Your pet reached level ${state.level}.`;
+  }
+}
+
+function renderGoals() {
+  goalList.innerHTML = "";
+
+  goals.forEach((goal) => {
+    const item = document.createElement("li");
+    item.className = "goal-item";
+    if (goal.completed) {
+      item.classList.add("completed");
+    }
+
+    const label = document.createElement("p");
+    label.className = "goal-text";
+    label.textContent = `${goal.text} (${goal.type}, +${goal.xpReward} XP)`;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "goal-complete-btn";
+    button.textContent = goal.completed ? "Done" : "Complete";
+    button.disabled = goal.completed || state.gameOver;
+    button.addEventListener("click", () => completeGoal(goal.id));
+
+    item.append(label, button);
+    goalList.appendChild(item);
+  });
+}
+
 function render() {
-  Object.keys(bars).forEach((key) => {
+  attributeKeys.forEach((key) => {
     const value = clamp(state[key]);
     bars[key].style.width = `${value}%`;
     labels[key].textContent = String(Math.round(value));
   });
 
+  const needed = xpNeededForLevel(state.level);
+  const xpPercent = clamp((state.xp / needed) * 100);
+  levelText.textContent = `Level ${state.level}`;
+  xpText.textContent = `${Math.round(state.xp)} / ${needed} XP`;
+  xpBar.style.width = `${xpPercent}%`;
+
   const avg = averageWellness();
   petMood.textContent = moodText(avg);
   petAvatar.textContent = avatarFace(avg);
-  streakText.textContent = `Daily check-ins: ${state.checkins}`;
+  streakText.textContent = `Goals completed: ${state.goalsCompleted}`;
 
   statusText.classList.toggle("alert", state.gameOver);
   if (state.gameOver) {
     statusText.textContent = "Game over: one or more wellness stats reached zero.";
   }
 
-  actionButtons.forEach((button) => {
-    button.disabled = state.gameOver;
-  });
+  renderGoals();
 }
 
 function gameTick() {
   if (state.gameOver) return;
 
-  state.physical = clamp(state.physical - 2);
-  state.mental = clamp(state.mental - 1.6);
-  state.social = clamp(state.social - 1.8);
-  state.spiritual = clamp(state.spiritual - 1.3);
+  state.physical = clamp(state.physical - 0.9);
+  state.mental = clamp(state.mental - 0.75);
+  state.social = clamp(state.social - 0.8);
+  state.spiritual = clamp(state.spiritual - 0.65);
 
-  if (Object.values(state).some((value) => typeof value === "number" && value === 0)) {
+  const depleted = attributeKeys.some((key) => state[key] === 0);
+  if (depleted) {
     state.gameOver = true;
   }
 
   render();
 }
 
-function applyAction(action) {
+function completeGoal(goalId) {
   if (state.gameOver) return;
 
-  const boosts = {
-    physical: { physical: 18, mental: 4 },
-    mental: { mental: 18, spiritual: 3 },
-    social: { social: 20, mental: 3 },
-    spiritual: { spiritual: 18, mental: 2 },
-  };
+  const goal = goals.find((entry) => entry.id === goalId);
+  if (!goal || goal.completed) return;
 
-  const selectedBoost = boosts[action];
-  if (!selectedBoost) return;
+  goal.completed = true;
+  state.goalsCompleted += 1;
 
-  Object.entries(selectedBoost).forEach(([key, value]) => {
+  const boosts = getGoalBoosts(goal.type);
+  Object.entries(boosts).forEach(([key, value]) => {
     state[key] = clamp(state[key] + value);
   });
 
-  state.checkins += 1;
-  statusText.textContent = `Nice work. You completed a ${action} check-in.`;
+  addXp(goal.xpReward);
+  statusText.textContent = `Completed: ${goal.text}. Wellness and XP increased.`;
+  render();
+}
+
+function addCustomGoal(event) {
+  event.preventDefault();
+  if (state.gameOver) return;
+
+  const text = goalTextInput.value.trim();
+  const type = goalTypeInput.value;
+
+  if (!text || !attributeKeys.includes(type)) return;
+
+  goals.push(createGoal(type, text, 32));
+  goalTextInput.value = "";
+  statusText.textContent = `Custom ${type} goal added.`;
+  render();
+}
+
+function refreshSuggestedGoals() {
+  if (state.gameOver) return;
+
+  generateSuggestedGoals();
+  statusText.textContent = "New suggested goals generated.";
   render();
 }
 
 function resetGame() {
   Object.assign(state, initialState);
-  statusText.textContent = "Start by choosing one self-care action you completed today.";
+  generateSuggestedGoals();
+  statusText.textContent = "Complete goals to improve wellness and earn pet XP.";
   render();
 }
 
-actionButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const action = button.getAttribute("data-action");
-    applyAction(action);
-  });
-});
-
+goalForm.addEventListener("submit", addCustomGoal);
+refreshGoalsBtn.addEventListener("click", refreshSuggestedGoals);
 resetBtn.addEventListener("click", resetGame);
 
+generateSuggestedGoals();
 render();
 setInterval(gameTick, 12000);

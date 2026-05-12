@@ -63,20 +63,44 @@
         </article>
       </div>
 
-      <div class="actions">
-        <button data-action="physical">I exercised or moved</button>
-        <button data-action="mental">I journaled or reflected</button>
-        <button data-action="social">I connected with someone</button>
-        <button data-action="spiritual">I did a spiritual practice</button>
-      </div>
+      <section class="progress" aria-label="Pet progression">
+        <div class="meter-label-row">
+          <span id="levelText">Level 1</span>
+          <span id="xpText">0 / 120 XP</span>
+        </div>
+        <div class="meter-track"><div id="xpBar" class="meter-fill xp"></div></div>
+      </section>
+
+      <section class="goal-panel" aria-label="Goal tracker">
+        <div class="goal-panel-header">
+          <h2>Daily Goals</h2>
+          <button id="refreshGoalsBtn" class="secondary" type="button">Refresh Suggestions</button>
+        </div>
+
+        <ul id="goalList" class="goal-list"></ul>
+
+        <form id="goalForm" class="goal-form">
+          <label for="goalText">Create your own goal</label>
+          <div class="goal-form-row">
+            <input id="goalText" name="goalText" type="text" maxlength="90" placeholder="Example: Do 5 push-ups" required />
+            <select id="goalType" name="goalType">
+              <option value="physical">Physical</option>
+              <option value="mental">Mental</option>
+              <option value="social">Social</option>
+              <option value="spiritual">Spiritual</option>
+            </select>
+            <button type="submit">Add Goal</button>
+          </div>
+        </form>
+      </section>
 
       <div class="utility-row">
-        <p id="streakText" class="streak">Daily check-ins: 0</p>
+        <p id="streakText" class="streak">Goals completed: 0</p>
         <button id="resetBtn" class="secondary">Reset Pet</button>
       </div>
 
       <p id="statusText" class="status-text">
-        Start by choosing one self-care action you completed today.
+        Complete goals to improve wellness and earn pet XP.
       </p>
     </section>
   </main>
