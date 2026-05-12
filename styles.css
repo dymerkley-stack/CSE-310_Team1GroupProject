@@ -340,6 +340,73 @@ body {
   color: var(--alert-ink);
 }
 
+.custom-goals {
+  margin-top: 18px;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  padding: 14px;
+}
+
+.custom-goals h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.goal-toggle {
+  width: 100%;
+  border: 2px dashed var(--line);
+  background: var(--paper);
+  padding: 12px;
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.goal-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-goal-panel {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 2px dashed #777;
+}
+
+.custom-goal-hint {
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+
+.add-goal-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.add-goal-row:last-child {
+  margin-bottom: 0;
+}
+
+.add-goal-row label {
+  font-weight: 700;
+}
+
+.add-goal-row input {
+  border: 2px solid var(--line);
+  background: var(--paper);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.add-goal-row input:focus-visible {
+  outline: 3px dashed var(--line);
+  outline-offset: 1px;
+}
+
 @media (max-width: 800px) {
   .stat-bars,
   .tabs {
@@ -363,5 +430,9 @@ body {
   .utility-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .add-goal-row {
+    grid-template-columns: 1fr;
   }
 }
