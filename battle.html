@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pet Battle Arena</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wireframe" aria-live="polite">
+    <section class="battle-header">
+      <a href="index.html" class="nav-link">← Back to Main</a>
+      <h1>Battle Arena</h1>
+    </section>
+
+    <section class="battle-container">
+      <div class="battle-side player-side">
+        <h2>Your Pet</h2>
+        <div class="pet-display">
+          <div id="playerPetAvatar" class="stick-character">(o^.^o)</div>
+          <p id="playerLevel" class="level-text">Level 1</p>
+        </div>
+        <div class="battle-stats">
+          <div class="stat-row">
+            <span>Physical</span>
+            <span id="playerPhysical">100</span>
+          </div>
+          <div class="stat-row">
+            <span>Mental</span>
+            <span id="playerMental">100</span>
+          </div>
+          <div class="stat-row">
+            <span>Social</span>
+            <span id="playerSocial">100</span>
+          </div>
+          <div class="stat-row">
+            <span>Intellectual</span>
+            <span id="playerIntellectual">100</span>
+          </div>
+          <div class="stat-row">
+            <span>Spiritual</span>
+            <span id="playerSpiritual">100</span>
+          </div>
+        </div>
+        <div class="health-bar">
+          <div id="playerHealthFill" class="health-fill"></div>
+        </div>
+        <p id="playerHealth">Health: 500 / 500</p>
+      </div>
+
+      <div class="battle-center">
+        <h2 id="battleStatus">Select an Action</h2>
+        <div id="battleLog" class="battle-log"></div>
+      </div>
+
+      <div class="battle-side enemy-side">
+        <h2 id="enemyName">Enemy</h2>
+        <div class="pet-display">
+          <div id="enemyAvatar" class="stick-character">o_o</div>
+        </div>
+        <div class="health-bar">
+          <div id="enemyHealthFill" class="health-fill"></div>
+        </div>
+        <p id="enemyHealth">Health: 300 / 300</p>
+      </div>
+    </section>
+
+    <section class="action-buttons">
+      <button id="physicalAttackBtn" class="attack-btn physical-btn" type="button">
+        <span class="btn-label">Physical Attack</span>
+        <span class="btn-cost" id="physicalCost">-10 Physical</span>
+      </button>
+      <button id="mentalAttackBtn" class="attack-btn mental-btn" type="button">
+        <span class="btn-label">Mental Strike</span>
+        <span class="btn-cost" id="mentalCost">-8 Mental</span>
+      </button>
+      <button id="socialAttackBtn" class="attack-btn social-btn" type="button">
+        <span class="btn-label">Social Charm</span>
+        <span class="btn-cost" id="socialCost">-12 Social</span>
+      </button>
+      <button id="intellectualAttackBtn" class="attack-btn intellectual-btn" type="button">
+        <span class="btn-label">Intellectual Blast</span>
+        <span class="btn-cost" id="intellectualCost">-9 Intellectual</span>
+      </button>
+      <button id="spiritualAttackBtn" class="attack-btn spiritual-btn" type="button">
+        <span class="btn-label">Spiritual Shield</span>
+        <span class="btn-cost" id="spiritualCost">-6 Spiritual</span>
+      </button>
+      <button id="defendBtn" class="defend-btn" type="button">Defend</button>
+    </section>
+
+    <section class="battle-rewards" id="rewardsSection" hidden>
+      <h2>Battle Won!</h2>
+      <p id="rewardExp">Gained 50 EXP</p>
+      <button id="nextBattleBtn" class="primary-btn" type="button">Next Battle</button>
+    </section>
+  </main>
+
+  <script src="battle.js"></script>
+</body>
+</html>

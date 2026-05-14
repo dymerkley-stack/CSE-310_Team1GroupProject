@@ -122,6 +122,20 @@ function saveProgress() {
       checkins: state.checkins,
     })
   );
+  saveWellnessState();
+}
+
+function saveWellnessState() {
+  localStorage.setItem(
+    "wellnessState",
+    JSON.stringify({
+      physical: state.physical,
+      mental: state.mental,
+      social: state.social,
+      intellectual: state.intellectual,
+      spiritual: state.spiritual,
+    })
+  );
 }
 
 function loadProgress() {
@@ -420,11 +434,11 @@ function render() {
 function gameTick() {
   if (state.gameOver) return;
 
-  state.physical = clamp(state.physical - 2);
-  state.mental = clamp(state.mental - 1.6);
-  state.social = clamp(state.social - 1.8);
-  state.intellectual = clamp(state.intellectual - 1.7);
-  state.spiritual = clamp(state.spiritual - 1.3);
+  state.physical = clamp(state.physical - 0.2);
+  state.mental = clamp(state.mental - 0.16);
+  state.social = clamp(state.social - 0.18);
+  state.intellectual = clamp(state.intellectual - 0.17);
+  state.spiritual = clamp(state.spiritual - 0.13);
 
   if (wellnessKeys.some((key) => state[key] === 0)) {
     state.gameOver = true;

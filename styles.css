@@ -437,6 +437,256 @@ body {
   outline-offset: 1px;
 }
 
+/* Battle Page Styles */
+.top-nav {
+  margin-bottom: 16px;
+  text-align: right;
+}
+
+.nav-link {
+  display: inline-block;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nav-link:hover {
+  background: var(--panel);
+}
+
+.battle-header {
+  padding: 20px 30px;
+  border-bottom: 3px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.battle-header h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.battle-container {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 20px;
+  padding: 30px;
+  align-items: start;
+  min-height: 400px;
+}
+
+.battle-side {
+  border: 2px solid var(--line);
+  padding: 20px;
+  background: var(--panel);
+}
+
+.battle-side h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.pet-display {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.pet-display .stick-character {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.level-text {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.battle-stats {
+  margin: 12px 0;
+  background: var(--paper);
+  padding: 10px;
+  border: 1px solid var(--line);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #ddd;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.health-bar {
+  width: 100%;
+  height: 24px;
+  border: 2px solid var(--line);
+  background: #efefef;
+  margin: 12px 0 6px;
+}
+
+.health-fill {
+  width: 100%;
+  height: 100%;
+  background: #28a745;
+  transition: width 200ms ease;
+}
+
+.battle-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.battle-center h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.battle-log {
+  border: 2px dashed var(--line);
+  padding: 12px;
+  background: var(--paper);
+  min-height: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.battle-log p {
+  margin: 4px 0;
+  padding: 2px 0;
+}
+
+.action-buttons {
+  padding: 20px 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  border-top: 3px solid var(--line);
+}
+
+.attack-btn {
+  border: 2px solid var(--line);
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--panel);
+  transition: all 150ms ease;
+}
+
+.attack-btn:hover {
+  background: var(--paper);
+  transform: translateY(-2px);
+}
+
+.attack-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.btn-cost {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.physical-btn {
+  border-color: #d9534f;
+}
+
+.mental-btn {
+  border-color: #5bc0de;
+}
+
+.social-btn {
+  border-color: #f0ad4e;
+}
+
+.intellectual-btn {
+  border-color: #4f46e5;
+}
+
+.spiritual-btn {
+  border-color: #5cb85c;
+}
+
+.defend-btn {
+  border: 2px solid var(--line);
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--paper);
+}
+
+.battle-rewards {
+  padding: 20px 30px;
+  text-align: center;
+  border-top: 3px solid var(--line);
+  background: var(--panel);
+}
+
+.battle-rewards h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.battle-rewards p {
+  font-size: 16px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.primary-btn {
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--line);
+  padding: 12px 24px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.primary-btn:hover {
+  background: var(--muted);
+}
+
+@media (max-width: 1024px) {
+  .battle-container {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-log {
+    order: 3;
+  }
+}
+
 @media (max-width: 800px) {
   .stat-bars,
   .tabs {
