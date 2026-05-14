@@ -5,6 +5,8 @@ const initialState = {
   intellectual: 70,
   spiritual: 70,
   checkins: 0,
+  level: 1,
+  exp: 0,
   gameOver: false,
 };
 
@@ -12,6 +14,13 @@ const state = { ...initialState };
 const wellnessKeys = ["physical", "mental", "social", "intellectual", "spiritual"];
 const DAILY_TASKS_PER_CATEGORY = 2;
 const DAILY_TASKS_KEY = "wellnessDailyTasks";
+const WELLNESS_PROGRESS_KEY = "wellnessProgress";
+const EXP_BASE = 100;
+const EXP_MULTIPLIER = 1.15;
+
+function expRequiredForLevel(level) {
+  return Math.round(EXP_BASE * Math.pow(EXP_MULTIPLIER, level - 1));
+}
 const DEFAULT_CATEGORY_POINTS = {
   physical: 18,
   mental: 18,
@@ -73,11 +82,12 @@ const labels = {
 
 const petMood = document.getElementById("petMood");
 const petAvatar = document.getElementById("petAvatar");
-const streakText = document.getElementById("streakText");
 const levelText = document.getElementById("levelText");
+const expFill = document.getElementById("expFill");
+const expText = document.getElementById("expText");
 const taskHeader = document.getElementById("taskHeader");
-const statusText = document.getElementById("statusText");
 const resetBtn = document.getElementById("resetBtn");
+const resetGoalsBtn = document.getElementById("resetGoalsBtn");
 const taskList = document.getElementById("taskList");
 const tabButtons = Array.from(document.querySelectorAll(".tab[data-tab]"));
 const customGoalToggle = document.getElementById("customGoalToggle");
@@ -100,7 +110,58 @@ function averageWellness() {
 }
 
 function currentLevel() {
-  return Math.floor(state.checkins / 5) + 1;
+  return state.level;
+}
+
+function saveProgress() {
+  localStorage.setItem(
+    WELLNESS_PROGRESS_KEY,
+    JSON.stringify({
+      level: state.level,
+      exp: state.exp,
+      checkins: state.checkins,
+    })
+  );
+}
+
+function loadProgress() {
+  const raw = localStorage.getItem(WELLNESS_PROGRESS_KEY);
+
+  if (!raw) {
+    const derivedLevel = Math.max(1, Math.floor(state.checkins / 5) + 1);
+    state.level = derivedLevel;
+    state.exp = 0;
+    saveProgress();
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    const safeLevel = Number.isFinite(parsed?.level) ? Math.max(1, Math.floor(parsed.level)) : 1;
+    const safeExp = Number.isFinite(parsed?.exp) ? clamp(Math.floor(parsed.exp), 0, expRequiredForLevel(safeLevel) - 1) : 0;
+    const safeCheckins = Number.isFinite(parsed?.checkins) ? Math.max(0, Math.floor(parsed.checkins)) : 0;
+
+    state.level = safeLevel;
+    state.exp = safeExp;
+    state.checkins = safeCheckins;
+  } catch {
+    state.level = 1;
+    state.exp = 0;
+    state.checkins = 0;
+    saveProgress();
+  }
+}
+
+function addExp(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+
+  state.exp += Math.floor(amount);
+  while (state.exp >= expRequiredForLevel(state.level)) {
+    state.exp -= expRequiredForLevel(state.level);
+    state.level += 1;
+  }
+
+  saveProgress();
 }
 
 function todayKey() {
@@ -337,14 +398,17 @@ function render() {
   const avg = averageWellness();
   petMood.textContent = moodText(avg);
   petAvatar.textContent = avatarFace(avg);
-  streakText.textContent = `Daily check-ins: ${state.checkins}`;
   if (levelText) {
     levelText.textContent = `Level ${currentLevel()}`;
   }
-
-  statusText.classList.toggle("alert", state.gameOver);
-  if (state.gameOver) {
-    statusText.textContent = "Game over: one or more wellness stats reached zero.";
+  if (expFill) {
+    const expRequired = expRequiredForLevel(state.level);
+    const progressPercent = Math.round((state.exp / expRequired) * 100);
+    expFill.style.width = `${progressPercent}%`;
+  }
+  if (expText) {
+    const expRequired = expRequiredForLevel(state.level);
+    expText.textContent = `${state.exp} / ${expRequired} EXP`;
   }
 
   const actionButtons = Array.from(document.querySelectorAll("[data-action]"));
@@ -388,7 +452,7 @@ function applyAction(action) {
   });
 
   state.checkins += 1;
-  statusText.textContent = `Nice work. You completed a ${action} check-in.`;
+  saveProgress();
   render();
 }
 
@@ -398,6 +462,7 @@ function completeTask(taskId, sourceButton) {
 
   task.completed = true;
   applyAction(task.category);
+  addExp(task.points);
   saveDailyTasks();
   renderTaskList();
   renderTabs();
@@ -413,7 +478,6 @@ function completeTask(taskId, sourceButton) {
 function addCustomGoal(category, title) {
   if (!wellnessKeys.includes(category)) return;
   if (hasCustomGoalForCategory(category)) {
-    statusText.textContent = `You can only add one extra ${toTitleCase(category)} goal per day.`;
     return;
   }
 
@@ -433,13 +497,20 @@ function addCustomGoal(category, title) {
   saveDailyTasks();
   renderTaskList();
   renderTabs();
-  statusText.textContent = `${toTitleCase(category)} goal added for today.`;
 }
 
 function resetGame() {
   Object.assign(state, initialState);
-  statusText.textContent = "Start by choosing one self-care action you completed today.";
+  saveProgress();
   render();
+}
+
+function resetGoals() {
+  dailyTasks = generateDailyTasks();
+  isCustomGoalPanelOpen = false;
+  saveDailyTasks();
+  renderTaskList();
+  renderTabs();
 }
 
 if (taskList) {
@@ -488,34 +559,13 @@ if (customGoalForm) {
 }
 
 resetBtn.addEventListener("click", resetGame);
+if (resetGoalsBtn) {
+  resetGoalsBtn.addEventListener("click", resetGoals);
+}
 
+loadProgress();
 loadDailyTasks();
 renderTaskList();
 renderTabs();
 render();
 setInterval(gameTick, 12000);
-
-const modal = document.getElementById("goalModal");
-const openModalBtn = document.getElementById("openModalBtn");
-const cancelGoalBtn = document.getElementById("cancelGoalBtn");
-const saveGoalBtn = document.getElementById("saveGoalBtn");
-
-// Open and Close Modal
-openModalBtn.addEventListener("click", () => modal.classList.remove("hidden"));
-cancelGoalBtn.addEventListener("click", () => modal.classList.add("hidden"));
-
-// Handle Saving
-saveGoalBtn.addEventListener("click", () => {
-  const title = document.getElementById("goalTitle").value;
-  const details = document.getElementById("goalDetails").value;
-
-  if (title && details) {
-    // Uses the activeCategory so the goal appears in the tab you are currently viewing
-    addNewGoal(activeCategory, title, details, 15); 
-    
-    // Reset and close
-    modal.classList.add("hidden");
-    document.getElementById("goalTitle").value = "";
-    document.getElementById("goalDetails").value = "";
-  }
-});
