@@ -61,9 +61,12 @@ function calculatePetStats(attribute) {
 }
 
 function generateMonster() {
-  const avgPlayerStat = 70;
-  const playerDifficulty = playerProgress.level / 5;
-  const selected = monsters.find((m) => m.difficulty <= playerDifficulty + 1) || monsters[0];
+  let selected;
+  if (playerProgress.level >= 20) selected = monsters[4];      // Demon
+  else if (playerProgress.level >= 15) selected = monsters[3]; // Dragon
+  else if (playerProgress.level >= 10) selected = monsters[2]; // Orc
+  else if (playerProgress.level >= 5) selected = monsters[1];  // Goblin
+  else selected = monsters[0];                                  // Slime
 
   const health = Math.round(selected.baseHealth * (1 + playerProgress.level * 0.1));
 
@@ -213,9 +216,11 @@ function endBattle(playerWon) {
     }
 
     addBattleLog(`Victory! Gained ${totalExp} EXP!`);
+    document.getElementById("rewardsTitle").textContent = "Battle Won!";
     document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
   } else {
     addBattleLog("Defeated! Your pet needs rest.");
+    document.getElementById("rewardsTitle").textContent = "Defeated!";
     document.getElementById("rewardExp").textContent = `Battle Lost. Return to wellness!`;
   }
 

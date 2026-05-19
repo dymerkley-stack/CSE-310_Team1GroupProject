@@ -138,6 +138,22 @@ function saveWellnessState() {
   );
 }
 
+function loadWellnessState() {
+  const raw = localStorage.getItem("wellnessState");
+  if (!raw) return;
+
+  try {
+    const parsed = JSON.parse(raw);
+    wellnessKeys.forEach((key) => {
+      if (Number.isFinite(parsed?.[key])) {
+        state[key] = clamp(parsed[key]);
+      }
+    });
+  } catch {
+    // leave defaults intact
+  }
+}
+
 function loadProgress() {
   const raw = localStorage.getItem(WELLNESS_PROGRESS_KEY);
 
@@ -578,6 +594,7 @@ if (resetGoalsBtn) {
 }
 
 loadProgress();
+loadWellnessState();
 loadDailyTasks();
 renderTaskList();
 renderTabs();
