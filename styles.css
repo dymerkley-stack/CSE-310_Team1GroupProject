@@ -7,6 +7,11 @@
   --muted: #555;
   --alert-bg: #ffe3e3;
   --alert-ink: #7f1e1e;
+  --color-coral: #f46036;
+  --color-dark-purple: #2e294e;
+  --color-teal: #1b998b;
+  --color-red: #e71d36;
+  --color-lime: #c5d86d;
 }
 
 * {
@@ -16,9 +21,9 @@
 }
 
 body {
-  background: var(--soft);
+  background: #ffffff;
   padding: 30px;
-  color: var(--ink);
+  color: #000000;
   font-family: Arial, sans-serif;
 }
 
@@ -201,6 +206,26 @@ body {
   transition: width 180ms ease;
 }
 
+.stat-card:nth-child(1) .bar-fill {
+  background: var(--color-coral);
+}
+
+.stat-card:nth-child(2) .bar-fill {
+  background: var(--color-teal);
+}
+
+.stat-card:nth-child(3) .bar-fill {
+  background: var(--color-red);
+}
+
+.stat-card:nth-child(4) .bar-fill {
+  background: var(--color-lime);
+}
+
+.stat-card:nth-child(5) .bar-fill {
+  background: var(--color-dark-purple);
+}
+
 .bar-fill.intellectual {
   background: #4f46e5;
 }
@@ -296,12 +321,31 @@ body {
 }
 
 .checkbox.complete {
-  background: #222;
   color: #fff;
 }
 
 .checkbox.complete::after {
   content: "✓";
+}
+
+.checkbox.complete.physical {
+  background: var(--color-coral);
+}
+
+.checkbox.complete.mental {
+  background: var(--color-teal);
+}
+
+.checkbox.complete.social {
+  background: var(--color-red);
+}
+
+.checkbox.complete.intellectual {
+  background: var(--color-lime);
+}
+
+.checkbox.complete.spiritual {
+  background: var(--color-dark-purple);
 }
 
 .task-title {
@@ -631,7 +675,7 @@ body {
 }
 
 .spiritual-btn {
-  border-color: #5cb85c;
+  border-color: var(--color-dark-purple);
 }
 
 .defend-btn {

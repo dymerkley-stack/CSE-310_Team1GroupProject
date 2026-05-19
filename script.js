@@ -304,7 +304,7 @@ function renderTaskList() {
       card.classList.add("hidden");
     }
 
-    const checkboxClass = task.completed ? "checkbox complete" : "checkbox";
+    const checkboxClass = task.completed ? `checkbox complete ${task.category}` : "checkbox";
     const pointsClass = task.completed ? "points complete" : "points";
     const disabled = task.completed || state.gameOver ? "disabled" : "";
     const safeTitle = escapeHtml(task.title);
