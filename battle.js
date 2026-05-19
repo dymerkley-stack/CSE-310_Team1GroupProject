@@ -3,18 +3,33 @@ const WELLNESS_STATE_KEY = "wellnessState";
 const BATTLE_LOG_LIMIT = 5;
 const EXP_BASE = 100;
 const EXP_MULTIPLIER = 1.15;
+const CRITICAL_HIT_CHANCE = 0.2;
+const CRITICAL_HIT_MULTIPLIER = 1.5;
+const PLAYER_REGEN_AMOUNT = 25;
+const SYNERGY_BONUS_MULTIPLIER = 1.3;
+const SPECIAL_MOVE_CHANCE = 0.3;
+const DUNGEON_TOTAL_FLOORS = 3;
+const DUNGEON_PARTIAL_HEAL_PERCENT = 0.2;
+const BASE_PLAYER_MAX_HEALTH = 500;
+const PLAYER_HEALTH_LEVEL_MODIFIER = 0.08;
 
 let playerProgress = { level: 1, exp: 0, checkins: 0 };
 let playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
 let battleState = {
   playerHealth: 500,
-  playerMaxHealth: 500,
+  playerMaxHealth: BASE_PLAYER_MAX_HEALTH,
   enemyHealth: 300,
   enemyMaxHealth: 300,
   isPlayerTurn: true,
   isDefending: false,
   currentEnemy: null,
   battleLog: [],
+  playerStatus: { regenTurns: 0, focusTurns: 0 },
+  enemyStatus: { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 },
+  lastPlayerAttribute: null,
+  pendingEnemySpecial: null,
+  dungeon: { active: false, floor: 0, totalFloors: DUNGEON_TOTAL_FLOORS },
+  lastBattleWon: null,
 };
 
 const monsters = [
@@ -25,8 +40,95 @@ const monsters = [
   { name: "Demon", baseHealth: 500, difficulty: 2.5 },
 ];
 
+const attributeSynergies = {
+  "mental->intellectual": {
+    name: "Focus Blast",
+    bonusMultiplier: SYNERGY_BONUS_MULTIPLIER,
+    applyEffect: () => {
+      const restored = getScaledSynergyEnergyRestore();
+      playerState.intellectual = Math.min(100, playerState.intellectual + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Intellectual energy.`);
+    },
+  },
+  "social->spiritual": {
+    name: "Harmonized Aura",
+    bonusMultiplier: SYNERGY_BONUS_MULTIPLIER,
+    applyEffect: () => {
+      const heal = getScaledSynergyHeal();
+      const before = battleState.playerHealth;
+      battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + heal);
+      const healed = battleState.playerHealth - before;
+      if (healed > 0) {
+        addBattleLog(`Synergy effect: Healed ${healed} health.`);
+      }
+    },
+  },
+  "physical->mental": {
+    name: "Body-Mind Surge",
+    bonusMultiplier: SYNERGY_BONUS_MULTIPLIER,
+    applyEffect: () => {
+      const restored = 4;
+      playerState.mental = Math.min(100, playerState.mental + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Mental energy.`);
+    },
+  },
+  "intellectual->social": {
+    name: "Inspiring Insight",
+    bonusMultiplier: SYNERGY_BONUS_MULTIPLIER,
+    applyEffect: () => {
+      const restored = 4;
+      playerState.social = Math.min(100, playerState.social + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Social energy.`);
+    },
+  },
+};
+
+const monsterAsciiMap = {
+  Slime: ["  .--.  ", "  ( oo ) ", "  '--'  "].join("\n"),
+  Goblin: ["  ,_,   ", "  (o.o)  ", "  /|_|\\ "].join("\n"),
+  Orc: ["   ___   ", "  (O_O)  ", " /| |\\ "].join("\n"),
+  Dragon: [" /\\_/\\ ", " ( o.o )>", " \_^_/  "].join("\n"),
+  Demon: ["  /\\_/\\ ", "  ( x.x ) ", "   <_||_>  "].join("\n"),
+};
+
+const enemySpecialMoves = {
+  Slime: { name: "Gelatin Slam", multiplier: 1.4 },
+  Goblin: { name: "Backstab Barrage", multiplier: 1.6 },
+  Orc: { name: "Brutal Cleave", multiplier: 1.8 },
+  Dragon: { name: "Fire Breath", multiplier: 2.0 },
+  Demon: { name: "Abyssal Ruin", multiplier: 2.2 },
+};
+
+function getScaledSynergyEnergyRestore() {
+  return Math.min(12, 4 + Math.floor(playerProgress.level / 5));
+}
+
+function getScaledSynergyHeal() {
+  const byLevel = 16 + playerProgress.level * 2;
+  const byMaxHealth = Math.round(battleState.playerMaxHealth * 0.08);
+  return Math.max(byLevel, byMaxHealth);
+}
+
 function expRequiredForLevel(level) {
   return Math.round(EXP_BASE * Math.pow(EXP_MULTIPLIER, level - 1));
+}
+
+function calculatePlayerMaxHealth(level) {
+  const safeLevel = Math.max(1, Math.floor(level || 1));
+  return Math.round(BASE_PLAYER_MAX_HEALTH * (1 + (safeLevel - 1) * PLAYER_HEALTH_LEVEL_MODIFIER));
+}
+
+function syncPlayerMaxHealthWithLevel() {
+  const previousMax = battleState.playerMaxHealth;
+  const newMax = calculatePlayerMaxHealth(playerProgress.level);
+  const healthDelta = newMax - previousMax;
+
+  battleState.playerMaxHealth = newMax;
+  if (healthDelta > 0) {
+    battleState.playerHealth = Math.min(newMax, battleState.playerHealth + healthDelta);
+  } else if (battleState.playerHealth > newMax) {
+    battleState.playerHealth = newMax;
+  }
 }
 
 function loadPlayerData() {
@@ -48,6 +150,8 @@ function loadPlayerData() {
       playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
     }
   }
+
+  syncPlayerMaxHealthWithLevel();
 }
 
 function savePlayerData() {
@@ -60,13 +164,25 @@ function calculatePetStats(attribute) {
   return Math.round((baseAttribute / 100) * playerProgress.level * 20);
 }
 
+function getUnlockedMonsterIndexForLevel(level) {
+  if (level >= 20) return 4;
+  if (level >= 15) return 3;
+  if (level >= 10) return 2;
+  if (level >= 5) return 1;
+  return 0;
+}
+
 function generateMonster() {
-  let selected;
-  if (playerProgress.level >= 20) selected = monsters[4];      // Demon
-  else if (playerProgress.level >= 15) selected = monsters[3]; // Dragon
-  else if (playerProgress.level >= 10) selected = monsters[2]; // Orc
-  else if (playerProgress.level >= 5) selected = monsters[1];  // Goblin
-  else selected = monsters[0];                                  // Slime
+  const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(playerProgress.level);
+  let selectedIndex = strongestUnlockedIndex;
+
+  if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+    if (strongestUnlockedIndex > 0) {
+      selectedIndex = Math.floor(Math.random() * strongestUnlockedIndex);
+    }
+  }
+
+  const selected = monsters[selectedIndex];
 
   const health = Math.round(selected.baseHealth * (1 + playerProgress.level * 0.1));
 
@@ -101,6 +217,81 @@ function getAttackDamage(attribute) {
   return Math.round(petStat * (baseMultiplier[attribute] || 1));
 }
 
+function applyCriticalStatusEffect(attribute) {
+  switch (attribute) {
+    case "physical":
+      battleState.enemyStatus.stunnedTurns = Math.max(battleState.enemyStatus.stunnedTurns, 1);
+      addBattleLog("Critical effect: Stun! Enemy loses its next turn.");
+      break;
+    case "mental":
+      battleState.enemyStatus.weakenedTurns = Math.max(battleState.enemyStatus.weakenedTurns, 2);
+      addBattleLog("Critical effect: Mind Break! Enemy damage is reduced for 2 turns.");
+      break;
+    case "social":
+      battleState.enemyStatus.vulnerableTurns = Math.max(battleState.enemyStatus.vulnerableTurns, 2);
+      addBattleLog("Critical effect: Exposed! Enemy takes extra damage for 2 turns.");
+      break;
+    case "intellectual":
+      battleState.playerStatus.focusTurns = Math.max(battleState.playerStatus.focusTurns, 2);
+      addBattleLog("Critical effect: Focus! Your attacks deal extra damage for 2 turns.");
+      break;
+    case "spiritual":
+      battleState.playerStatus.regenTurns = Math.max(battleState.playerStatus.regenTurns, 3);
+      addBattleLog("Critical effect: Regeneration! You recover health for 3 turns.");
+      break;
+    default:
+      break;
+  }
+}
+
+function applyStartOfPlayerTurnEffects() {
+  if (battleState.playerStatus.regenTurns > 0) {
+    const before = battleState.playerHealth;
+    battleState.playerHealth = Math.min(
+      battleState.playerMaxHealth,
+      battleState.playerHealth + PLAYER_REGEN_AMOUNT
+    );
+    const healed = battleState.playerHealth - before;
+    battleState.playerStatus.regenTurns -= 1;
+    if (healed > 0) {
+      addBattleLog(`Regeneration restores ${healed} health.`);
+    }
+  }
+}
+
+function getActiveSynergy(currentAttribute) {
+  if (!battleState.lastPlayerAttribute) return null;
+  const key = `${battleState.lastPlayerAttribute}->${currentAttribute}`;
+  return attributeSynergies[key] || null;
+}
+
+function formatAttributeName(attribute) {
+  return attribute.charAt(0).toUpperCase() + attribute.slice(1);
+}
+
+function getComboSeedHint() {
+  if (!battleState.lastPlayerAttribute) return "Combo Seed: None";
+  return `Combo Seed: ${formatAttributeName(battleState.lastPlayerAttribute)}`;
+}
+
+function getMonsterAscii(monsterName) {
+  return monsterAsciiMap[monsterName] || "o_o";
+}
+
+function getDungeonStatusText() {
+  if (!battleState.dungeon.active) return "Dungeon Mode: Off";
+  return `Dungeon Run: Floor ${battleState.dungeon.floor}/${battleState.dungeon.totalFloors}`;
+}
+
+function applyDungeonRecovery() {
+  const baseRecovery = Math.round(battleState.playerMaxHealth * DUNGEON_PARTIAL_HEAL_PERCENT);
+  const recovery = Math.max(1, baseRecovery);
+  const before = battleState.playerHealth;
+  battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + recovery);
+  const healed = battleState.playerHealth - before;
+  addBattleLog(`Dungeon recovery: +${healed} health for the next floor.`);
+}
+
 function addBattleLog(message) {
   battleState.battleLog.push(message);
   if (battleState.battleLog.length > BATTLE_LOG_LIMIT) {
@@ -129,12 +320,22 @@ function renderBattleUI() {
 
   if (battleState.currentEnemy) {
     document.getElementById("enemyName").textContent = battleState.currentEnemy.name;
+    document.getElementById("enemyAvatar").textContent = getMonsterAscii(battleState.currentEnemy.name);
     const enemyHealthPercent = Math.round((battleState.currentEnemy.health / battleState.currentEnemy.maxHealth) * 100);
     document.getElementById("enemyHealthFill").style.width = `${enemyHealthPercent}%`;
     document.getElementById("enemyHealth").textContent = `Health: ${Math.max(0, battleState.currentEnemy.health)} / ${battleState.currentEnemy.maxHealth}`;
   }
 
   document.getElementById("battleStatus").textContent = battleState.isPlayerTurn ? "Your Turn" : "Enemy Attacking...";
+  document.getElementById("comboSeedHint").textContent = getComboSeedHint();
+  document.getElementById("dungeonStatus").textContent = getDungeonStatusText();
+
+  const dungeonButton = document.getElementById("startDungeonBtn");
+  if (dungeonButton) {
+    dungeonButton.textContent = battleState.dungeon.active
+      ? "Restart Dungeon Run (Reset HP)"
+      : "Start Dungeon Run";
+  }
 }
 
 function performAction(attribute) {
@@ -146,11 +347,43 @@ function performAction(attribute) {
     return;
   }
 
-  const damage = getAttackDamage(attribute);
+  const isCritical = Math.random() < CRITICAL_HIT_CHANCE;
+  let damage = getAttackDamage(attribute);
+  const activeSynergy = getActiveSynergy(attribute);
+
+  if (battleState.playerStatus.focusTurns > 0) {
+    damage = Math.round(damage * 1.2);
+    battleState.playerStatus.focusTurns -= 1;
+    addBattleLog("Focus boosts your attack power!");
+  }
+
+  if (battleState.enemyStatus.vulnerableTurns > 0) {
+    damage = Math.round(damage * 1.25);
+    battleState.enemyStatus.vulnerableTurns -= 1;
+    addBattleLog("Enemy vulnerability increases your damage!");
+  }
+
+  if (activeSynergy) {
+    damage = Math.round(damage * activeSynergy.bonusMultiplier);
+    addBattleLog(`Synergy triggered: ${activeSynergy.name}!`);
+    activeSynergy.applyEffect();
+  }
+
+  if (isCritical) {
+    damage = Math.round(damage * CRITICAL_HIT_MULTIPLIER);
+  }
+
   playerState[attribute] = Math.max(0, playerState[attribute] - cost);
   battleState.currentEnemy.health = Math.max(0, battleState.currentEnemy.health - damage);
 
-  addBattleLog(`You used ${attribute}! Dealt ${damage} damage.`);
+  if (isCritical) {
+    addBattleLog(`Critical hit! You used ${attribute} and dealt ${damage} damage!`);
+    applyCriticalStatusEffect(attribute);
+  } else {
+    addBattleLog(`You used ${attribute}! Dealt ${damage} damage.`);
+  }
+
+  battleState.lastPlayerAttribute = attribute;
 
   if (battleState.currentEnemy.health <= 0) {
     endBattle(true);
@@ -166,26 +399,76 @@ function performDefend() {
   if (!battleState.isPlayerTurn || !battleState.currentEnemy) return;
 
   battleState.isDefending = true;
+  battleState.lastPlayerAttribute = null;
   addBattleLog("You brace for impact!");
   battleState.isPlayerTurn = false;
+  renderBattleUI();
   setTimeout(enemyTurn, 1000);
 }
 
 function enemyTurn() {
   if (!battleState.currentEnemy) return;
 
+  if (battleState.enemyStatus.stunnedTurns > 0) {
+    battleState.enemyStatus.stunnedTurns -= 1;
+    addBattleLog("Enemy is stunned and cannot act!");
+    battleState.isPlayerTurn = true;
+    applyStartOfPlayerTurnEffects();
+    renderBattleUI();
+    return;
+  }
+
   const attributes = ["physical", "mental", "social", "intellectual", "spiritual"];
   const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
-  const damage = Math.round(calculatePetStats(randomAttr) * 0.8);
+  const specialMove = enemySpecialMoves[battleState.currentEnemy.name];
+  const isSpecialAttack = Boolean(battleState.pendingEnemySpecial && specialMove);
+
+  if (!isSpecialAttack && specialMove && Math.random() < SPECIAL_MOVE_CHANCE) {
+    battleState.pendingEnemySpecial = specialMove.name;
+    addBattleLog(
+      `${battleState.currentEnemy.name} is preparing ${specialMove.name}! Defend to reduce the impact.`
+    );
+    battleState.isPlayerTurn = true;
+    applyStartOfPlayerTurnEffects();
+    renderBattleUI();
+    return;
+  }
+
+  let damageMultiplier = 0.8;
+  if (isSpecialAttack) {
+    damageMultiplier = specialMove.multiplier;
+  }
+
+  let damage = Math.round(calculatePetStats(randomAttr) * damageMultiplier);
+
+  if (battleState.enemyStatus.weakenedTurns > 0) {
+    damage = Math.round(damage * 0.5);
+    battleState.enemyStatus.weakenedTurns -= 1;
+    addBattleLog("Enemy is weakened. Its attack power drops!");
+  }
 
   let actualDamage = damage;
   if (battleState.isDefending) {
     actualDamage = Math.round(damage * 0.4);
-    addBattleLog(`Enemy attacks! You defend. Reduced to ${actualDamage} damage.`);
+    if (isSpecialAttack) {
+      addBattleLog(
+        `${battleState.currentEnemy.name} unleashes ${specialMove.name}! You defend and reduce it to ${actualDamage} damage.`
+      );
+    } else {
+      addBattleLog(`Enemy attacks! You defend. Reduced to ${actualDamage} damage.`);
+    }
     battleState.isDefending = false;
   } else {
-    addBattleLog(`Enemy attacks with ${randomAttr}! ${damage} damage!`);
+    if (isSpecialAttack) {
+      addBattleLog(
+        `${battleState.currentEnemy.name} unleashes ${specialMove.name}! ${actualDamage} damage!`
+      );
+    } else {
+      addBattleLog(`Enemy attacks with ${randomAttr}! ${damage} damage!`);
+    }
   }
+
+  battleState.pendingEnemySpecial = null;
 
   battleState.playerHealth = Math.max(0, battleState.playerHealth - actualDamage);
 
@@ -193,6 +476,7 @@ function enemyTurn() {
     endBattle(false);
   } else {
     battleState.isPlayerTurn = true;
+    applyStartOfPlayerTurnEffects();
   }
 
   renderBattleUI();
@@ -205,6 +489,7 @@ function endBattle(playerWon) {
   actionButtons.style.opacity = "0.5";
 
   if (playerWon) {
+    const levelBefore = playerProgress.level;
     const baseExp = Math.round(100 * battleState.currentEnemy.difficulty);
     const bonus = Math.round(baseExp * 0.5);
     const totalExp = baseExp + bonus;
@@ -215,13 +500,47 @@ function endBattle(playerWon) {
       playerProgress.level += 1;
     }
 
+    syncPlayerMaxHealthWithLevel();
+    if (playerProgress.level > levelBefore) {
+      addBattleLog(`Level up! Max health increased to ${battleState.playerMaxHealth}.`);
+    }
+
+    battleState.lastBattleWon = true;
+
+    if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+      applyDungeonRecovery();
+    }
+
     addBattleLog(`Victory! Gained ${totalExp} EXP!`);
-    document.getElementById("rewardsTitle").textContent = "Battle Won!";
-    document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+    if (battleState.dungeon.active) {
+      if (battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
+        document.getElementById("rewardsTitle").textContent = "Dungeon Cleared!";
+        document.getElementById("rewardExp").textContent = `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+        document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+      } else {
+        document.getElementById("rewardsTitle").textContent = "Floor Cleared!";
+        document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
+        document.getElementById("nextBattleBtn").textContent = "Next Dungeon Floor";
+      }
+    } else {
+      document.getElementById("rewardsTitle").textContent = "Battle Won!";
+      document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+      document.getElementById("nextBattleBtn").textContent = "Next Battle";
+    }
   } else {
+    battleState.lastBattleWon = false;
     addBattleLog("Defeated! Your pet needs rest.");
-    document.getElementById("rewardsTitle").textContent = "Defeated!";
-    document.getElementById("rewardExp").textContent = `Battle Lost. Return to wellness!`;
+    if (battleState.dungeon.active) {
+      document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
+      document.getElementById("rewardExp").textContent = "Dungeon run ended. Start a new dungeon to reset and try again.";
+      document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+      battleState.dungeon.active = false;
+      battleState.dungeon.floor = 0;
+    } else {
+      document.getElementById("rewardsTitle").textContent = "Defeated!";
+      document.getElementById("rewardExp").textContent = `Battle Lost. Return to wellness!`;
+      document.getElementById("nextBattleBtn").textContent = "Next Battle";
+    }
   }
 
   savePlayerData();
@@ -229,13 +548,21 @@ function endBattle(playerWon) {
   renderBattleUI();
 }
 
-function startNewBattle() {
+function startNewBattle(options = {}) {
+  const { preserveHealth = false } = options;
+  syncPlayerMaxHealthWithLevel();
   battleState.currentEnemy = generateMonster();
-  battleState.playerHealth = battleState.playerMaxHealth;
+  if (!preserveHealth) {
+    battleState.playerHealth = battleState.playerMaxHealth;
+  }
   battleState.enemyHealth = battleState.currentEnemy.maxHealth;
   battleState.isPlayerTurn = true;
   battleState.isDefending = false;
   battleState.battleLog = [];
+  battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
+  battleState.enemyStatus = { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
+  battleState.lastPlayerAttribute = null;
+  battleState.pendingEnemySpecial = null;
 
   const rewardsSection = document.getElementById("rewardsSection");
   rewardsSection.hidden = true;
@@ -248,13 +575,41 @@ function startNewBattle() {
   renderBattleUI();
 }
 
+function startDungeonRun() {
+  battleState.dungeon.active = true;
+  battleState.dungeon.floor = 1;
+  battleState.lastBattleWon = null;
+  startNewBattle({ preserveHealth: false });
+  addBattleLog("Dungeon run started! Clear all floors in one run.");
+}
+
+function handleNextBattle() {
+  if (battleState.dungeon.active) {
+    if (battleState.lastBattleWon && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+      battleState.dungeon.floor += 1;
+      startNewBattle({ preserveHealth: true });
+      return;
+    }
+
+    if (battleState.lastBattleWon && battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
+      battleState.dungeon.active = false;
+      battleState.dungeon.floor = 0;
+      startNewBattle({ preserveHealth: false });
+      return;
+    }
+  }
+
+  startNewBattle({ preserveHealth: false });
+}
+
 document.getElementById("physicalAttackBtn").addEventListener("click", () => performAction("physical"));
 document.getElementById("mentalAttackBtn").addEventListener("click", () => performAction("mental"));
 document.getElementById("socialAttackBtn").addEventListener("click", () => performAction("social"));
 document.getElementById("intellectualAttackBtn").addEventListener("click", () => performAction("intellectual"));
 document.getElementById("spiritualAttackBtn").addEventListener("click", () => performAction("spiritual"));
 document.getElementById("defendBtn").addEventListener("click", performDefend);
-document.getElementById("nextBattleBtn").addEventListener("click", startNewBattle);
+document.getElementById("startDungeonBtn").addEventListener("click", startDungeonRun);
+document.getElementById("nextBattleBtn").addEventListener("click", handleNextBattle);
 
 loadPlayerData();
 startNewBattle();

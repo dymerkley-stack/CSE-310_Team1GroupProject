@@ -50,13 +50,15 @@
 
       <div class="battle-center">
         <h2 id="battleStatus">Select an Action</h2>
+        <p id="comboSeedHint" class="combo-seed-hint">Combo Seed: None</p>
+        <p id="dungeonStatus" class="combo-seed-hint">Dungeon Mode: Off</p>
         <div id="battleLog" class="battle-log"></div>
       </div>
 
       <div class="battle-side enemy-side">
         <h2 id="enemyName">Enemy</h2>
         <div class="pet-display">
-          <div id="enemyAvatar" class="stick-character">o_o</div>
+          <div id="enemyAvatar" class="stick-character enemy-avatar-ascii">o_o</div>
         </div>
         <div class="health-bar">
           <div id="enemyHealthFill" class="health-fill"></div>
@@ -87,6 +89,7 @@
         <span class="btn-cost" id="spiritualCost">-6 Spiritual</span>
       </button>
       <button id="defendBtn" class="defend-btn" type="button">Defend</button>
+      <button id="startDungeonBtn" class="defend-btn" type="button">Start Dungeon Run</button>
     </section>
 
     <section class="battle-rewards" id="rewardsSection" hidden>

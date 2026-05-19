@@ -600,6 +600,21 @@ body {
   text-align: center;
 }
 
+.combo-seed-hint {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.enemy-avatar-ascii {
+  font-family: "Courier New", monospace;
+  white-space: pre;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
 .battle-log {
   border: 2px dashed var(--line);
   padding: 12px;
