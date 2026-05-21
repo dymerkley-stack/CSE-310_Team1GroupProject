@@ -17,6 +17,7 @@ const DAILY_TASKS_KEY = "wellnessDailyTasks";
 const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const EXP_BASE = 100;
 const EXP_MULTIPLIER = 1.15;
+const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
 
 function expRequiredForLevel(level) {
   return Math.round(EXP_BASE * Math.pow(EXP_MULTIPLIER, level - 1));
@@ -35,30 +36,70 @@ const taskPools = {
     { title: "Drink a full glass of water", details: "Hydration helps your body and focus stay stable.", points: 12 },
     { title: "Do 20 squats", details: "A quick bodyweight set boosts physical energy.", points: 20 },
     { title: "Take a posture break", details: "Stand up and reset your posture for 2 minutes.", points: 10 },
+    { title: "Walk between classes", details: "Choose stairs or add a 10-minute brisk walk today.", points: 16 },
+    { title: "Do a short mobility flow", details: "Spend 8 minutes loosening hips, shoulders, and back.", points: 18 },
+    { title: "Prep one healthy snack", details: "Pick fruit, nuts, or yogurt instead of a random grab.", points: 14 },
+    { title: "Sleep routine check", details: "Set a bedtime target and stop screens 20 minutes before.", points: 16 },
+    { title: "Do a stair burst", details: "Climb stairs for 5 focused minutes to raise your heart rate.", points: 18 },
+    { title: "Stretch after sitting", details: "Do a 6-minute stretch break after study time.", points: 14 },
+    { title: "Pack a water bottle", details: "Keep water with you and refill it at least once.", points: 12 },
+    { title: "Core mini-circuit", details: "Complete one quick core set: plank, crunches, and leg raises.", points: 20 },
   ],
   mental: [
     { title: "Journal one reflection", details: "Write down one thought and one next step.", points: 18 },
     { title: "Read for 15 minutes", details: "Spend focused time with a book or article.", points: 16 },
     { title: "Plan tomorrow", details: "List your top three priorities for tomorrow.", points: 14 },
     { title: "Do a focus sprint", details: "Work distraction-free for 20 minutes.", points: 20 },
+    { title: "Brain dump for 5 minutes", details: "Write every worry or task on paper to clear your mind.", points: 14 },
+    { title: "Use a pomodoro block", details: "Complete one 25-minute work sprint and short break.", points: 18 },
+    { title: "Tidy your workspace", details: "Reset your desk to reduce mental clutter.", points: 12 },
+    { title: "Do one hard-first task", details: "Knock out your most challenging item early.", points: 20 },
+    { title: "Set three clear priorities", details: "Choose your top three wins for today and write them down.", points: 14 },
+    { title: "Take a mindful reset", details: "Pause for 3 minutes and breathe slowly before your next task.", points: 12 },
+    { title: "Limit distractions", details: "Turn off non-essential notifications for one focused session.", points: 16 },
+    { title: "Reflect on one lesson", details: "Write one thing that worked well and one improvement.", points: 18 },
   ],
   social: [
     { title: "Send one kind message", details: "Reach out and encourage someone today.", points: 20 },
     { title: "Call a friend or family", details: "Have a short check-in conversation.", points: 18 },
     { title: "Thank someone", details: "Express appreciation to a person who helped you.", points: 12 },
     { title: "Do one helpful act", details: "Support someone with a small practical action.", points: 16 },
+    { title: "Start a campus conversation", details: "Introduce yourself or chat with someone new for a few minutes.", points: 18 },
+    { title: "Reply thoughtfully", details: "Send one meaningful response instead of a quick reaction.", points: 14 },
+    { title: "Invite someone to study", details: "Coordinate one short study or accountability session.", points: 20 },
+    { title: "Compliment with intent", details: "Give one specific, sincere compliment today.", points: 12 },
+    { title: "Check in with a classmate", details: "Ask someone how they are doing and listen with attention.", points: 16 },
+    { title: "Share a useful resource", details: "Send one article, note, or tip that could help someone.", points: 14 },
+    { title: "Join one group discussion", details: "Contribute a thought in class, chat, or a study group.", points: 18 },
+    { title: "Offer practical help", details: "Help with one small task like notes, setup, or planning.", points: 16 },
   ],
   intellectual: [
     { title: "Finish one course module", details: "Complete one lecture or assignment chunk in a class.", points: 22 },
     { title: "Review class notes", details: "Summarize your notes for one current course.", points: 16 },
     { title: "Solve 5 practice problems", details: "Work through a short set of practice questions.", points: 20 },
     { title: "Attend office hours or tutoring", details: "Ask one question to improve your understanding.", points: 18 },
+    { title: "Teach back a concept", details: "Explain one concept out loud as if teaching a classmate.", points: 18 },
+    { title: "Build a mini cheat sheet", details: "Create a one-page summary for a topic you are learning.", points: 20 },
+    { title: "Watch one tutorial", details: "Complete a focused educational video and take two notes.", points: 14 },
+    { title: "Practice spaced recall", details: "Quiz yourself on old material for 10 minutes.", points: 16 },
+    { title: "Read one research abstract", details: "Find a short paper abstract and summarize the main idea.", points: 14 },
+    { title: "Make 5 flashcards", details: "Create or review five cards for a current course topic.", points: 16 },
+    { title: "Solve one challenge problem", details: "Attempt a harder question beyond routine homework.", points: 22 },
+    { title: "Debug a small issue", details: "Fix one bug or misconception and note what caused it.", points: 18 },
   ],
   spiritual: [
     { title: "Practice calm breathing", details: "Take 10 slow breaths and center yourself.", points: 18 },
     { title: "Write one gratitude note", details: "Capture one thing you are grateful for.", points: 14 },
     { title: "Take a quiet pause", details: "Sit in silence for 5 minutes and reset.", points: 12 },
     { title: "Reflect on values", details: "Choose one value and one way to live it today.", points: 16 },
+    { title: "Take a mindful walk", details: "Walk slowly for 10 minutes and notice your surroundings.", points: 16 },
+    { title: "Do a short meditation", details: "Use a 5-10 minute guided meditation.", points: 18 },
+    { title: "Write a self-kindness line", details: "Write one supportive statement to yourself.", points: 12 },
+    { title: "Disconnect for 15 minutes", details: "Step away from screens and reset your attention.", points: 14 },
+    { title: "Name today’s intention", details: "Choose one word for how you want to show up today.", points: 14 },
+    { title: "Do a body scan pause", details: "Spend 5 minutes noticing tension and releasing it.", points: 16 },
+    { title: "Step outside in silence", details: "Take a few quiet minutes outdoors without your phone.", points: 14 },
+    { title: "End-day gratitude trio", details: "Write three small things that went well today.", points: 18 },
   ],
 };
 
@@ -182,16 +223,119 @@ function loadProgress() {
   }
 }
 
+function rainConfetti(options = {}) {
+  const count = Number.isFinite(options.count) ? Math.max(20, Math.floor(options.count)) : 110;
+  const baseDuration = Number.isFinite(options.duration) ? Math.max(900, Math.floor(options.duration)) : 2200;
+
+  const container = document.createElement("div");
+  container.setAttribute("aria-hidden", "true");
+  container.style.position = "fixed";
+  container.style.inset = "0";
+  container.style.pointerEvents = "none";
+  container.style.overflow = "hidden";
+  container.style.zIndex = "9999";
+
+  document.body.appendChild(container);
+
+  for (let i = 0; i < count; i += 1) {
+    const piece = document.createElement("span");
+    const size = 5 + Math.random() * 7;
+    const drift = -120 + Math.random() * 240;
+    const rotation = -540 + Math.random() * 1080;
+    const duration = baseDuration + Math.random() * 900;
+    const delay = Math.random() * 300;
+
+    piece.style.position = "absolute";
+    piece.style.top = "-10px";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.width = `${size}px`;
+    piece.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.55)}px`;
+    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    piece.style.opacity = String(0.8 + Math.random() * 0.2);
+    piece.style.borderRadius = Math.random() > 0.5 ? "1px" : "50%";
+
+    container.appendChild(piece);
+    piece.animate(
+      [
+        { transform: "translate3d(0, -12px, 0) rotate(0deg)" },
+        { transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)` },
+      ],
+      {
+        duration,
+        delay,
+        easing: "cubic-bezier(0.22, 0.7, 0.3, 1)",
+        fill: "forwards",
+      }
+    );
+  }
+
+  setTimeout(() => {
+    container.remove();
+  }, baseDuration + 1400);
+}
+
+function showLevelUpBanner(levelsGained = 1) {
+  const gained = Math.max(1, Math.floor(levelsGained));
+  const banner = document.createElement("div");
+  const message = gained > 1 ? `LEVEL UP x${gained}!` : "LEVEL UP!";
+
+  banner.setAttribute("aria-live", "polite");
+  banner.textContent = message;
+  banner.style.position = "fixed";
+  banner.style.left = "50%";
+  banner.style.top = "18%";
+  banner.style.transform = "translate(-50%, -20px) scale(0.96)";
+  banner.style.padding = "0.75rem 1.25rem";
+  banner.style.borderRadius = "999px";
+  banner.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  banner.style.fontSize = "clamp(1.1rem, 2.8vw, 1.7rem)";
+  banner.style.letterSpacing = "0.08em";
+  banner.style.color = "#ffffff";
+  banner.style.background = "linear-gradient(135deg, #ff9f1c, #ff4d6d)";
+  banner.style.boxShadow = "0 14px 30px rgba(0, 0, 0, 0.28)";
+  banner.style.zIndex = "10000";
+  banner.style.pointerEvents = "none";
+  banner.style.opacity = "0";
+
+  document.body.appendChild(banner);
+
+  banner.animate(
+    [
+      { opacity: 0, transform: "translate(-50%, -20px) scale(0.96)" },
+      { opacity: 1, transform: "translate(-50%, 0) scale(1)" },
+      { opacity: 1, transform: "translate(-50%, 0) scale(1)" },
+      { opacity: 0, transform: "translate(-50%, -12px) scale(1.03)" },
+    ],
+    {
+      duration: 1550,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      fill: "forwards",
+    }
+  );
+
+  setTimeout(() => {
+    banner.remove();
+  }, 1650);
+}
+
 function addExp(amount) {
   if (!Number.isFinite(amount) || amount <= 0) return;
 
   state.exp += Math.floor(amount);
+  let levelsGained = 0;
   while (state.exp >= expRequiredForLevel(state.level)) {
     state.exp -= expRequiredForLevel(state.level);
     state.level += 1;
+    levelsGained += 1;
+  }
+
+  if (levelsGained > 0) {
+    rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
+    showLevelUpBanner(levelsGained);
   }
 
   saveProgress();
+  render();
 }
 
 function todayKey() {
