@@ -17,6 +17,7 @@ const DAILY_TASKS_KEY = "wellnessDailyTasks";
 const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const EXP_BASE = 100;
 const EXP_MULTIPLIER = 1.15;
+const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
 
 function expRequiredForLevel(level) {
   return Math.round(EXP_BASE * Math.pow(EXP_MULTIPLIER, level - 1));
@@ -182,16 +183,119 @@ function loadProgress() {
   }
 }
 
+function rainConfetti(options = {}) {
+  const count = Number.isFinite(options.count) ? Math.max(20, Math.floor(options.count)) : 110;
+  const baseDuration = Number.isFinite(options.duration) ? Math.max(900, Math.floor(options.duration)) : 2200;
+
+  const container = document.createElement("div");
+  container.setAttribute("aria-hidden", "true");
+  container.style.position = "fixed";
+  container.style.inset = "0";
+  container.style.pointerEvents = "none";
+  container.style.overflow = "hidden";
+  container.style.zIndex = "9999";
+
+  document.body.appendChild(container);
+
+  for (let i = 0; i < count; i += 1) {
+    const piece = document.createElement("span");
+    const size = 5 + Math.random() * 7;
+    const drift = -120 + Math.random() * 240;
+    const rotation = -540 + Math.random() * 1080;
+    const duration = baseDuration + Math.random() * 900;
+    const delay = Math.random() * 300;
+
+    piece.style.position = "absolute";
+    piece.style.top = "-10px";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.width = `${size}px`;
+    piece.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.55)}px`;
+    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    piece.style.opacity = String(0.8 + Math.random() * 0.2);
+    piece.style.borderRadius = Math.random() > 0.5 ? "1px" : "50%";
+
+    container.appendChild(piece);
+    piece.animate(
+      [
+        { transform: "translate3d(0, -12px, 0) rotate(0deg)" },
+        { transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)` },
+      ],
+      {
+        duration,
+        delay,
+        easing: "cubic-bezier(0.22, 0.7, 0.3, 1)",
+        fill: "forwards",
+      }
+    );
+  }
+
+  setTimeout(() => {
+    container.remove();
+  }, baseDuration + 1400);
+}
+
+function showLevelUpBanner(levelsGained = 1) {
+  const gained = Math.max(1, Math.floor(levelsGained));
+  const banner = document.createElement("div");
+  const message = gained > 1 ? `LEVEL UP x${gained}!` : "LEVEL UP!";
+
+  banner.setAttribute("aria-live", "polite");
+  banner.textContent = message;
+  banner.style.position = "fixed";
+  banner.style.left = "50%";
+  banner.style.top = "18%";
+  banner.style.transform = "translate(-50%, -20px) scale(0.96)";
+  banner.style.padding = "0.75rem 1.25rem";
+  banner.style.borderRadius = "999px";
+  banner.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  banner.style.fontSize = "clamp(1.1rem, 2.8vw, 1.7rem)";
+  banner.style.letterSpacing = "0.08em";
+  banner.style.color = "#ffffff";
+  banner.style.background = "linear-gradient(135deg, #ff9f1c, #ff4d6d)";
+  banner.style.boxShadow = "0 14px 30px rgba(0, 0, 0, 0.28)";
+  banner.style.zIndex = "10000";
+  banner.style.pointerEvents = "none";
+  banner.style.opacity = "0";
+
+  document.body.appendChild(banner);
+
+  banner.animate(
+    [
+      { opacity: 0, transform: "translate(-50%, -20px) scale(0.96)" },
+      { opacity: 1, transform: "translate(-50%, 0) scale(1)" },
+      { opacity: 1, transform: "translate(-50%, 0) scale(1)" },
+      { opacity: 0, transform: "translate(-50%, -12px) scale(1.03)" },
+    ],
+    {
+      duration: 1550,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      fill: "forwards",
+    }
+  );
+
+  setTimeout(() => {
+    banner.remove();
+  }, 1650);
+}
+
 function addExp(amount) {
   if (!Number.isFinite(amount) || amount <= 0) return;
 
   state.exp += Math.floor(amount);
+  let levelsGained = 0;
   while (state.exp >= expRequiredForLevel(state.level)) {
     state.exp -= expRequiredForLevel(state.level);
     state.level += 1;
+    levelsGained += 1;
+  }
+
+  if (levelsGained > 0) {
+    rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
+    showLevelUpBanner(levelsGained);
   }
 
   saveProgress();
+  render();
 }
 
 function todayKey() {
