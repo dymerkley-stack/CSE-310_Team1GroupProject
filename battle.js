@@ -84,7 +84,7 @@ const attributeSynergies = {
 };
 
 const monsterAsciiMap = {
-  Slime: ["  .--.  ", "  ( oo ) ", "  '--'  "].join("\n"),
+  Slime: ["  .--.  ", " ( oo ) ", "  '--'  "].join("\n"),
   Goblin: ["  ,_,   ", "  (o.o)  ", "  /|_|\\ "].join("\n"),
   Orc: ["   ___   ", "  (O_O)  ", " /| |\\ "].join("\n"),
   Dragon: [" /\\_/\\ ", " ( o.o )>", " \_^_/  "].join("\n"),
