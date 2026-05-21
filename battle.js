@@ -27,6 +27,7 @@ let battleState = {
   battleLog: [],
   playerStatus: { regenTurns: 0, focusTurns: 0 },
   enemyStatus: { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 },
+  pendingEnemyAttack: null,
   lastPlayerAttribute: null,
   pendingEnemySpecial: null,
   dungeon: { active: false, floor: 0, totalFloors: DUNGEON_TOTAL_FLOORS },
@@ -61,6 +62,7 @@ const attributeSynergies = {
       const healed = battleState.playerHealth - before;
       if (healed > 0) {
         addBattleLog(`Synergy effect: Healed ${healed} health.`);
+        showCombatText({ target: "player", value: healed, type: "heal" });
       }
     },
   },
@@ -255,6 +257,182 @@ function showLevelUpBanner(levelsGained = 1) {
   }, 1650);
 }
 
+function getCombatantContainer(target) {
+  if (target === "player") {
+    return document.querySelector(".player-side");
+  }
+  if (target === "enemy") {
+    return document.querySelector(".enemy-side");
+  }
+  return null;
+}
+
+function showCombatText({ target, value, type = "damage" }) {
+  const amount = Math.max(0, Math.round(Number(value) || 0));
+  if (amount <= 0) return;
+
+  const container = getCombatantContainer(target);
+  if (!container) return;
+
+  const text = document.createElement("div");
+  const isHeal = type === "heal";
+
+  text.textContent = `${isHeal ? "+" : "-"}${amount}`;
+  text.setAttribute("aria-hidden", "true");
+  text.style.position = "absolute";
+  text.style.left = "50%";
+  text.style.top = "18%";
+  text.style.transform = "translate(-50%, 0) scale(0.9)";
+  text.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  text.style.fontSize = "clamp(1.05rem, 2.5vw, 1.55rem)";
+  text.style.letterSpacing = "0.05em";
+  text.style.fontWeight = "700";
+  text.style.color = isHeal ? "#ecfff1" : "#ffffff";
+  text.style.textShadow = isHeal
+    ? "0 2px 8px rgba(20, 93, 42, 0.55)"
+    : "0 2px 8px rgba(90, 0, 0, 0.55)";
+  text.style.background = isHeal
+    ? "linear-gradient(135deg, #31b96b, #1f8f57)"
+    : "linear-gradient(135deg, #ff4d6d, #cc2f43)";
+  text.style.border = "2px solid rgba(255, 255, 255, 0.7)";
+  text.style.borderRadius = "999px";
+  text.style.padding = "0.2rem 0.55rem";
+  text.style.pointerEvents = "none";
+  text.style.zIndex = "25";
+  text.style.opacity = "0";
+
+  container.appendChild(text);
+
+  text.animate(
+    [
+      { opacity: 0, transform: "translate(-50%, 10px) scale(0.85)" },
+      { opacity: 1, transform: "translate(-50%, -4px) scale(1.02)", offset: 0.22 },
+      { opacity: 1, transform: "translate(-50%, -18px) scale(1)", offset: 0.7 },
+      { opacity: 0, transform: "translate(-50%, -34px) scale(1.03)" },
+    ],
+    {
+      duration: 1050,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      fill: "forwards",
+    }
+  );
+
+  setTimeout(() => {
+    text.remove();
+  }, 1150);
+}
+
+function showEnemyIntentText(message, options = {}) {
+  const container = getCombatantContainer("enemy");
+  if (!container || !message) return;
+
+  const existing = container.querySelector(".enemy-intent-banner");
+  const text = existing || document.createElement("div");
+  const isSpecialCharge = options.variant === "charge";
+  const isSpecialIncoming = options.variant === "special";
+
+  if (!existing) {
+    text.className = "enemy-intent-banner";
+    text.setAttribute("aria-hidden", "true");
+    text.style.position = "absolute";
+    text.style.left = "50%";
+    text.style.top = "8%";
+    text.style.transform = "translate(-50%, 0) scale(0.95)";
+    text.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+    text.style.fontSize = "clamp(0.82rem, 2.1vw, 1.05rem)";
+    text.style.letterSpacing = "0.04em";
+    text.style.fontWeight = "700";
+    text.style.color = "#ffffff";
+    text.style.border = "2px solid rgba(255, 255, 255, 0.75)";
+    text.style.borderRadius = "999px";
+    text.style.padding = "0.22rem 0.62rem";
+    text.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.22)";
+    text.style.whiteSpace = "nowrap";
+    text.style.pointerEvents = "none";
+    text.style.zIndex = "30";
+    container.appendChild(text);
+  }
+
+  text.textContent = message;
+  text.style.background = isSpecialCharge
+    ? "linear-gradient(135deg, #5a3fd0, #2d5bdb)"
+    : isSpecialIncoming
+      ? "linear-gradient(135deg, #c44536, #f39c12)"
+      : "linear-gradient(135deg, #ff9f1c, #ff4d6d)";
+  text.style.opacity = "1";
+
+  text.animate(
+    [
+      { opacity: 0, transform: "translate(-50%, 10px) scale(0.92)" },
+      { opacity: 1, transform: "translate(-50%, 0) scale(1)" },
+    ],
+    {
+      duration: 250,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      fill: "forwards",
+    }
+  );
+}
+
+function clearEnemyIntentText() {
+  const container = getCombatantContainer("enemy");
+  if (!container) return;
+  const existing = container.querySelector(".enemy-intent-banner");
+  if (existing) {
+    existing.remove();
+  }
+}
+
+function planNextEnemyIntent() {
+  if (!battleState.currentEnemy) return;
+
+  const attributes = ["physical", "mental", "social", "intellectual", "spiritual"];
+  const specialMove = enemySpecialMoves[battleState.currentEnemy.name];
+
+  if (battleState.pendingEnemySpecial && specialMove) {
+    const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
+    let damage = Math.round(calculatePetStats(randomAttr) * specialMove.multiplier);
+
+    if (battleState.enemyStatus.weakenedTurns > 0) {
+      damage = Math.round(damage * 0.5);
+      battleState.enemyStatus.weakenedTurns -= 1;
+      addBattleLog("Enemy is weakened. Its attack power drops!");
+    }
+
+    battleState.pendingEnemyAttack = {
+      damage,
+      attribute: randomAttr,
+      isSpecial: true,
+      specialName: specialMove.name,
+    };
+    return;
+  }
+
+  if (specialMove && Math.random() < SPECIAL_MOVE_CHANCE) {
+    battleState.pendingEnemySpecial = specialMove.name;
+    battleState.pendingEnemyAttack = null;
+    showEnemyIntentText(`Charging ${specialMove.name}!`, { variant: "charge" });
+    return;
+  }
+
+  const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
+  let damage = Math.round(calculatePetStats(randomAttr) * 0.8);
+
+  if (battleState.enemyStatus.weakenedTurns > 0) {
+    damage = Math.round(damage * 0.5);
+    battleState.enemyStatus.weakenedTurns -= 1;
+    addBattleLog("Enemy is weakened. Its attack power drops!");
+  }
+
+  battleState.pendingEnemyAttack = {
+    damage,
+    attribute: randomAttr,
+    isSpecial: false,
+    specialName: null,
+  };
+  showEnemyIntentText(`Incoming ${damage} damage`);
+}
+
 function calculatePetStats(attribute) {
   const baseAttribute = playerState[attribute] || 70;
   return Math.round((baseAttribute / 100) * playerProgress.level * 20);
@@ -351,6 +529,7 @@ function applyStartOfPlayerTurnEffects() {
     battleState.playerStatus.regenTurns -= 1;
     if (healed > 0) {
       addBattleLog(`Regeneration restores ${healed} health.`);
+      showCombatText({ target: "player", value: healed, type: "heal" });
     }
   }
 }
@@ -389,17 +568,11 @@ function applyDungeonRecovery() {
 }
 
 function addBattleLog(message) {
-  battleState.battleLog.push(message);
-  if (battleState.battleLog.length > BATTLE_LOG_LIMIT) {
-    battleState.battleLog.shift();
-  }
-  renderBattleLog();
+  void message;
 }
 
 function renderBattleLog() {
-  const logElement = document.getElementById("battleLog");
-  logElement.innerHTML = battleState.battleLog.map((msg) => `<p>${msg}</p>`).join("");
-  logElement.scrollTop = logElement.scrollHeight;
+  return;
 }
 
 function renderBattleUI() {
@@ -437,6 +610,8 @@ function renderBattleUI() {
 function performAction(attribute) {
   if (!battleState.isPlayerTurn || !battleState.currentEnemy) return;
 
+  clearEnemyIntentText();
+
   const cost = getAttackCost(attribute);
   if (playerState[attribute] < cost) {
     addBattleLog("Not enough energy!");
@@ -471,6 +646,7 @@ function performAction(attribute) {
 
   playerState[attribute] = Math.max(0, playerState[attribute] - cost);
   battleState.currentEnemy.health = Math.max(0, battleState.currentEnemy.health - damage);
+  showCombatText({ target: "enemy", value: damage, type: "damage" });
 
   if (isCritical) {
     addBattleLog(`Critical hit! You used ${attribute} and dealt ${damage} damage!`);
@@ -494,6 +670,8 @@ function performAction(attribute) {
 function performDefend() {
   if (!battleState.isPlayerTurn || !battleState.currentEnemy) return;
 
+  clearEnemyIntentText();
+
   battleState.isDefending = true;
   battleState.lastPlayerAttribute = null;
   addBattleLog("You brace for impact!");
@@ -507,6 +685,9 @@ function enemyTurn() {
 
   if (battleState.enemyStatus.stunnedTurns > 0) {
     battleState.enemyStatus.stunnedTurns -= 1;
+    battleState.pendingEnemyAttack = null;
+    battleState.pendingEnemySpecial = null;
+    clearEnemyIntentText();
     addBattleLog("Enemy is stunned and cannot act!");
     battleState.isPlayerTurn = true;
     applyStartOfPlayerTurnEffects();
@@ -514,67 +695,34 @@ function enemyTurn() {
     return;
   }
 
-  const attributes = ["physical", "mental", "social", "intellectual", "spiritual"];
-  const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
-  const specialMove = enemySpecialMoves[battleState.currentEnemy.name];
-  const isSpecialAttack = Boolean(battleState.pendingEnemySpecial && specialMove);
-
-  if (!isSpecialAttack && specialMove && Math.random() < SPECIAL_MOVE_CHANCE) {
-    battleState.pendingEnemySpecial = specialMove.name;
-    addBattleLog(
-      `${battleState.currentEnemy.name} is preparing ${specialMove.name}! Defend to reduce the impact.`
-    );
-    battleState.isPlayerTurn = true;
-    applyStartOfPlayerTurnEffects();
-    renderBattleUI();
-    return;
+  if (!battleState.pendingEnemyAttack) {
+    planNextEnemyIntent();
   }
 
-  let damageMultiplier = 0.8;
-  if (isSpecialAttack) {
-    damageMultiplier = specialMove.multiplier;
-  }
+  if (battleState.pendingEnemyAttack) {
+    const queuedAttack = battleState.pendingEnemyAttack;
+    let actualDamage = queuedAttack.damage;
 
-  let damage = Math.round(calculatePetStats(randomAttr) * damageMultiplier);
-
-  if (battleState.enemyStatus.weakenedTurns > 0) {
-    damage = Math.round(damage * 0.5);
-    battleState.enemyStatus.weakenedTurns -= 1;
-    addBattleLog("Enemy is weakened. Its attack power drops!");
-  }
-
-  let actualDamage = damage;
-  if (battleState.isDefending) {
-    actualDamage = Math.round(damage * 0.4);
-    if (isSpecialAttack) {
-      addBattleLog(
-        `${battleState.currentEnemy.name} unleashes ${specialMove.name}! You defend and reduce it to ${actualDamage} damage.`
-      );
-    } else {
-      addBattleLog(`Enemy attacks! You defend. Reduced to ${actualDamage} damage.`);
+    if (battleState.isDefending) {
+      actualDamage = Math.round(queuedAttack.damage * 0.4);
+      battleState.isDefending = false;
     }
-    battleState.isDefending = false;
-  } else {
-    if (isSpecialAttack) {
-      addBattleLog(
-        `${battleState.currentEnemy.name} unleashes ${specialMove.name}! ${actualDamage} damage!`
-      );
-    } else {
-      addBattleLog(`Enemy attacks with ${randomAttr}! ${damage} damage!`);
+
+    battleState.playerHealth = Math.max(0, battleState.playerHealth - actualDamage);
+    showCombatText({ target: "player", value: actualDamage, type: "damage" });
+
+    battleState.pendingEnemyAttack = null;
+    battleState.pendingEnemySpecial = null;
+
+    if (battleState.playerHealth <= 0) {
+      endBattle(false);
+      return;
     }
   }
 
-  battleState.pendingEnemySpecial = null;
-
-  battleState.playerHealth = Math.max(0, battleState.playerHealth - actualDamage);
-
-  if (battleState.playerHealth <= 0) {
-    endBattle(false);
-  } else {
-    battleState.isPlayerTurn = true;
-    applyStartOfPlayerTurnEffects();
-  }
-
+  planNextEnemyIntent();
+  battleState.isPlayerTurn = true;
+  applyStartOfPlayerTurnEffects();
   renderBattleUI();
 }
 
@@ -657,11 +805,13 @@ function startNewBattle(options = {}) {
   battleState.enemyHealth = battleState.currentEnemy.maxHealth;
   battleState.isPlayerTurn = true;
   battleState.isDefending = false;
-  battleState.battleLog = [];
+  battleState.pendingEnemyAttack = null;
   battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
   battleState.enemyStatus = { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
   battleState.lastPlayerAttribute = null;
   battleState.pendingEnemySpecial = null;
+  clearEnemyIntentText();
+  planNextEnemyIntent();
 
   const rewardsSection = document.getElementById("rewardsSection");
   rewardsSection.hidden = true;
