@@ -1,32 +1,44 @@
-# Wellness Tamagotchi Starter
+# Spuddy Buddy
 
 This is a basic starter for a web-based Tamagotchi game where caring for your pet requires real-world self-care check-ins.
 
-## Focus Areas
+# Team Members
+-Jade Barr
+-Jack Tingey
+-Dylan Merkley
+-Parker Dragovich
+-Tess Hollinger
 
-- Physical wellness
-- Mental wellness
-- Social wellness
-- Spiritual wellness (optional)
+# Software Description
+  A virtual buddy/pet that to keep care of the user must preform tasks to take care of themselves. Like being physcially active or compeleting coursework.
+  
+  ## Focus Areas
+  - Physical wellness
+  - Mental wellness
+  - Social wellness
+  - Intellectual wellness
+  - Spiritual wellness
 
-## Current Starter Features
+# Architecture
+  Lanagues used, HTML, CSS, JavaScript. 
+  Currently uses the Cahce, but will be moved over to a database.
 
-- Virtual pet with mood and avatar changes
-- Four wellness meters that decay over time
-- Action buttons to log completed self-care actions
-- Basic game-over and reset flow
-- Mobile-friendly responsive layout
+# Software Features
+  Users may track progess on tasks for the listed above attributes to keep their pets/buddies healthy and to gain exp to eventally level up. 
+  The User can then enter a "Battle Arena" and battle digital enemies using their pet/buddy which uses up thier attributes but provides bonus exp.
+  
+  [] Be able to access on the phone
+  [] Connect the pet/buddy to different applications/websites to track real progress. Example: connecting to canvus to track your course work
+  [] Allow users to create accounts and compare/battle other players.
+  [] Create and implement actual animated character model with acessories for leveling up.
+  [] make it fun
 
-## How to Run
+  # Team Communication
+    Team Discord
 
-1. Open `index.html` in your browser.
-2. Click a self-care action when you complete one in real life.
-3. Keep all wellness meters above zero.
-
-## Suggested Next Steps
-
-- Add local storage for persistent progress
-- Add user accounts and backend sync
-- Add daily quest prompts and reminders
-- Add animations and pet growth stages
-- Add accessibility checks and keyboard-only support
+  # Team Responisbilites
+    Backend-Parker, Dlyan
+    Frontend-Tess, Jack
+    Animated Player and Art-Jade
+    Github Owner/Manager-Dlyan
+    Team Assigments- Parker, Tess
