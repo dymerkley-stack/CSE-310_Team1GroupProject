@@ -2,13 +2,13 @@
   --ink: #222;
   --paper: #ffffff;
   --panel: #fafafa;
-  --line: #222;
+  --line: #635a5a;
   --soft: #f2f2f2;
   --muted: #555;
   --alert-bg: #ffe3e3;
   --alert-ink: #7f1e1e;
   --color-coral: #f46036;
-  --color-dark-purple: #2e294e;
+  --color-dark-purple: #6455c8;
   --color-teal: #1b998b;
   --color-red: #e71d36;
   --color-lime: #c5d86d;
@@ -30,7 +30,7 @@ body {
 .wireframe {
   max-width: 1000px;
   margin: 0 auto;
-  background: var(--paper);
+  background: rgb(251, 255, 168);
   border: 3px solid var(--line);
 }
 
@@ -180,10 +180,10 @@ body {
 }
 
 .stat-card {
-  border: 2px solid var(--line);
+  border: 4px solid rgb(251, 255, 14);
+  border-radius: 12px;
   padding: 12px;
   text-align: left;
-  background: var(--paper);
 }
 
 .stat-label {
@@ -248,11 +248,31 @@ body {
   text-align: center;
   border-right: 2px solid var(--line);
   font-weight: 700;
-  background: #f7f7f7;
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
 }
+
+.tab:nth-child(1) {
+  background: var(--color-coral);
+}
+
+.tab:nth-child(2) {
+  background: var(--color-teal);
+}
+
+.tab:nth-child(3) {
+  background: var(--color-red);
+}
+
+.tab:nth-child(4) {
+  background: var(--color-lime);
+}
+
+.tab:nth-child(5) {
+  background: var(--color-dark-purple);
+}
+
 
 .tab:last-child {
   border-right: none;
