@@ -1,3 +1,17 @@
+import { loadLatestState, saveGameState } from "./database.js";
+
+async function testDatabase() {
+  // TEST SAVE
+  await saveGameState(currentState);
+
+  // TEST LOAD
+  const pets = await loadLatestState();
+
+  console.log("DATABASE RESPONSE:", pets);
+}
+
+testDatabase();
+
 const initialState = {
   physical: 70,
   mental: 70,
@@ -11,13 +25,26 @@ const initialState = {
 };
 
 const state = { ...initialState };
-const wellnessKeys = ["physical", "mental", "social", "intellectual", "spiritual"];
+const wellnessKeys = [
+  "physical",
+  "mental",
+  "social",
+  "intellectual",
+  "spiritual",
+];
 const DAILY_TASKS_PER_CATEGORY = 2;
 const DAILY_TASKS_KEY = "wellnessDailyTasks";
 const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const EXP_BASE = 100;
 const EXP_MULTIPLIER = 1.15;
-const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
+const CONFETTI_COLORS = [
+  "#ff6b6b",
+  "#ffd93d",
+  "#6bcB77",
+  "#4d96ff",
+  "#ff9f1c",
+  "#f15bb5",
+];
 
 function expRequiredForLevel(level) {
   return Math.round(EXP_BASE * Math.pow(EXP_MULTIPLIER, level - 1));
@@ -32,74 +59,314 @@ const DEFAULT_CATEGORY_POINTS = {
 
 const taskPools = {
   physical: [
-    { title: "Move for 10 minutes", details: "Take a walk, do push-ups, or stretch to build momentum.", points: 18 },
-    { title: "Drink a full glass of water", details: "Hydration helps your body and focus stay stable.", points: 12 },
-    { title: "Do 20 squats", details: "A quick bodyweight set boosts physical energy.", points: 20 },
-    { title: "Take a posture break", details: "Stand up and reset your posture for 2 minutes.", points: 10 },
-    { title: "Walk between classes", details: "Choose stairs or add a 10-minute brisk walk today.", points: 16 },
-    { title: "Do a short mobility flow", details: "Spend 8 minutes loosening hips, shoulders, and back.", points: 18 },
-    { title: "Prep one healthy snack", details: "Pick fruit, nuts, or yogurt instead of a random grab.", points: 14 },
-    { title: "Sleep routine check", details: "Set a bedtime target and stop screens 20 minutes before.", points: 16 },
-    { title: "Do a stair burst", details: "Climb stairs for 5 focused minutes to raise your heart rate.", points: 18 },
-    { title: "Stretch after sitting", details: "Do a 6-minute stretch break after study time.", points: 14 },
-    { title: "Pack a water bottle", details: "Keep water with you and refill it at least once.", points: 12 },
-    { title: "Core mini-circuit", details: "Complete one quick core set: plank, crunches, and leg raises.", points: 20 },
+    {
+      title: "Move for 10 minutes",
+      details: "Take a walk, do push-ups, or stretch to build momentum.",
+      points: 18,
+    },
+    {
+      title: "Drink a full glass of water",
+      details: "Hydration helps your body and focus stay stable.",
+      points: 12,
+    },
+    {
+      title: "Do 20 squats",
+      details: "A quick bodyweight set boosts physical energy.",
+      points: 20,
+    },
+    {
+      title: "Take a posture break",
+      details: "Stand up and reset your posture for 2 minutes.",
+      points: 10,
+    },
+    {
+      title: "Walk between classes",
+      details: "Choose stairs or add a 10-minute brisk walk today.",
+      points: 16,
+    },
+    {
+      title: "Do a short mobility flow",
+      details: "Spend 8 minutes loosening hips, shoulders, and back.",
+      points: 18,
+    },
+    {
+      title: "Prep one healthy snack",
+      details: "Pick fruit, nuts, or yogurt instead of a random grab.",
+      points: 14,
+    },
+    {
+      title: "Sleep routine check",
+      details: "Set a bedtime target and stop screens 20 minutes before.",
+      points: 16,
+    },
+    {
+      title: "Do a stair burst",
+      details: "Climb stairs for 5 focused minutes to raise your heart rate.",
+      points: 18,
+    },
+    {
+      title: "Stretch after sitting",
+      details: "Do a 6-minute stretch break after study time.",
+      points: 14,
+    },
+    {
+      title: "Pack a water bottle",
+      details: "Keep water with you and refill it at least once.",
+      points: 12,
+    },
+    {
+      title: "Core mini-circuit",
+      details: "Complete one quick core set: plank, crunches, and leg raises.",
+      points: 20,
+    },
   ],
   mental: [
-    { title: "Journal one reflection", details: "Write down one thought and one next step.", points: 18 },
-    { title: "Read for 15 minutes", details: "Spend focused time with a book or article.", points: 16 },
-    { title: "Plan tomorrow", details: "List your top three priorities for tomorrow.", points: 14 },
-    { title: "Do a focus sprint", details: "Work distraction-free for 20 minutes.", points: 20 },
-    { title: "Brain dump for 5 minutes", details: "Write every worry or task on paper to clear your mind.", points: 14 },
-    { title: "Use a pomodoro block", details: "Complete one 25-minute work sprint and short break.", points: 18 },
-    { title: "Tidy your workspace", details: "Reset your desk to reduce mental clutter.", points: 12 },
-    { title: "Do one hard-first task", details: "Knock out your most challenging item early.", points: 20 },
-    { title: "Set three clear priorities", details: "Choose your top three wins for today and write them down.", points: 14 },
-    { title: "Take a mindful reset", details: "Pause for 3 minutes and breathe slowly before your next task.", points: 12 },
-    { title: "Limit distractions", details: "Turn off non-essential notifications for one focused session.", points: 16 },
-    { title: "Reflect on one lesson", details: "Write one thing that worked well and one improvement.", points: 18 },
+    {
+      title: "Journal one reflection",
+      details: "Write down one thought and one next step.",
+      points: 18,
+    },
+    {
+      title: "Read for 15 minutes",
+      details: "Spend focused time with a book or article.",
+      points: 16,
+    },
+    {
+      title: "Plan tomorrow",
+      details: "List your top three priorities for tomorrow.",
+      points: 14,
+    },
+    {
+      title: "Do a focus sprint",
+      details: "Work distraction-free for 20 minutes.",
+      points: 20,
+    },
+    {
+      title: "Brain dump for 5 minutes",
+      details: "Write every worry or task on paper to clear your mind.",
+      points: 14,
+    },
+    {
+      title: "Use a pomodoro block",
+      details: "Complete one 25-minute work sprint and short break.",
+      points: 18,
+    },
+    {
+      title: "Tidy your workspace",
+      details: "Reset your desk to reduce mental clutter.",
+      points: 12,
+    },
+    {
+      title: "Do one hard-first task",
+      details: "Knock out your most challenging item early.",
+      points: 20,
+    },
+    {
+      title: "Set three clear priorities",
+      details: "Choose your top three wins for today and write them down.",
+      points: 14,
+    },
+    {
+      title: "Take a mindful reset",
+      details: "Pause for 3 minutes and breathe slowly before your next task.",
+      points: 12,
+    },
+    {
+      title: "Limit distractions",
+      details: "Turn off non-essential notifications for one focused session.",
+      points: 16,
+    },
+    {
+      title: "Reflect on one lesson",
+      details: "Write one thing that worked well and one improvement.",
+      points: 18,
+    },
   ],
   social: [
-    { title: "Send one kind message", details: "Reach out and encourage someone today.", points: 20 },
-    { title: "Call a friend or family", details: "Have a short check-in conversation.", points: 18 },
-    { title: "Thank someone", details: "Express appreciation to a person who helped you.", points: 12 },
-    { title: "Do one helpful act", details: "Support someone with a small practical action.", points: 16 },
-    { title: "Start a campus conversation", details: "Introduce yourself or chat with someone new for a few minutes.", points: 18 },
-    { title: "Reply thoughtfully", details: "Send one meaningful response instead of a quick reaction.", points: 14 },
-    { title: "Invite someone to study", details: "Coordinate one short study or accountability session.", points: 20 },
-    { title: "Compliment with intent", details: "Give one specific, sincere compliment today.", points: 12 },
-    { title: "Check in with a classmate", details: "Ask someone how they are doing and listen with attention.", points: 16 },
-    { title: "Share a useful resource", details: "Send one article, note, or tip that could help someone.", points: 14 },
-    { title: "Join one group discussion", details: "Contribute a thought in class, chat, or a study group.", points: 18 },
-    { title: "Offer practical help", details: "Help with one small task like notes, setup, or planning.", points: 16 },
+    {
+      title: "Send one kind message",
+      details: "Reach out and encourage someone today.",
+      points: 20,
+    },
+    {
+      title: "Call a friend or family",
+      details: "Have a short check-in conversation.",
+      points: 18,
+    },
+    {
+      title: "Thank someone",
+      details: "Express appreciation to a person who helped you.",
+      points: 12,
+    },
+    {
+      title: "Do one helpful act",
+      details: "Support someone with a small practical action.",
+      points: 16,
+    },
+    {
+      title: "Start a campus conversation",
+      details: "Introduce yourself or chat with someone new for a few minutes.",
+      points: 18,
+    },
+    {
+      title: "Reply thoughtfully",
+      details: "Send one meaningful response instead of a quick reaction.",
+      points: 14,
+    },
+    {
+      title: "Invite someone to study",
+      details: "Coordinate one short study or accountability session.",
+      points: 20,
+    },
+    {
+      title: "Compliment with intent",
+      details: "Give one specific, sincere compliment today.",
+      points: 12,
+    },
+    {
+      title: "Check in with a classmate",
+      details: "Ask someone how they are doing and listen with attention.",
+      points: 16,
+    },
+    {
+      title: "Share a useful resource",
+      details: "Send one article, note, or tip that could help someone.",
+      points: 14,
+    },
+    {
+      title: "Join one group discussion",
+      details: "Contribute a thought in class, chat, or a study group.",
+      points: 18,
+    },
+    {
+      title: "Offer practical help",
+      details: "Help with one small task like notes, setup, or planning.",
+      points: 16,
+    },
   ],
   intellectual: [
-    { title: "Finish one course module", details: "Complete one lecture or assignment chunk in a class.", points: 22 },
-    { title: "Review class notes", details: "Summarize your notes for one current course.", points: 16 },
-    { title: "Solve 5 practice problems", details: "Work through a short set of practice questions.", points: 20 },
-    { title: "Attend office hours or tutoring", details: "Ask one question to improve your understanding.", points: 18 },
-    { title: "Teach back a concept", details: "Explain one concept out loud as if teaching a classmate.", points: 18 },
-    { title: "Build a mini cheat sheet", details: "Create a one-page summary for a topic you are learning.", points: 20 },
-    { title: "Watch one tutorial", details: "Complete a focused educational video and take two notes.", points: 14 },
-    { title: "Practice spaced recall", details: "Quiz yourself on old material for 10 minutes.", points: 16 },
-    { title: "Read one research abstract", details: "Find a short paper abstract and summarize the main idea.", points: 14 },
-    { title: "Make 5 flashcards", details: "Create or review five cards for a current course topic.", points: 16 },
-    { title: "Solve one challenge problem", details: "Attempt a harder question beyond routine homework.", points: 22 },
-    { title: "Debug a small issue", details: "Fix one bug or misconception and note what caused it.", points: 18 },
+    {
+      title: "Finish one course module",
+      details: "Complete one lecture or assignment chunk in a class.",
+      points: 22,
+    },
+    {
+      title: "Review class notes",
+      details: "Summarize your notes for one current course.",
+      points: 16,
+    },
+    {
+      title: "Solve 5 practice problems",
+      details: "Work through a short set of practice questions.",
+      points: 20,
+    },
+    {
+      title: "Attend office hours or tutoring",
+      details: "Ask one question to improve your understanding.",
+      points: 18,
+    },
+    {
+      title: "Teach back a concept",
+      details: "Explain one concept out loud as if teaching a classmate.",
+      points: 18,
+    },
+    {
+      title: "Build a mini cheat sheet",
+      details: "Create a one-page summary for a topic you are learning.",
+      points: 20,
+    },
+    {
+      title: "Watch one tutorial",
+      details: "Complete a focused educational video and take two notes.",
+      points: 14,
+    },
+    {
+      title: "Practice spaced recall",
+      details: "Quiz yourself on old material for 10 minutes.",
+      points: 16,
+    },
+    {
+      title: "Read one research abstract",
+      details: "Find a short paper abstract and summarize the main idea.",
+      points: 14,
+    },
+    {
+      title: "Make 5 flashcards",
+      details: "Create or review five cards for a current course topic.",
+      points: 16,
+    },
+    {
+      title: "Solve one challenge problem",
+      details: "Attempt a harder question beyond routine homework.",
+      points: 22,
+    },
+    {
+      title: "Debug a small issue",
+      details: "Fix one bug or misconception and note what caused it.",
+      points: 18,
+    },
   ],
   spiritual: [
-    { title: "Practice calm breathing", details: "Take 10 slow breaths and center yourself.", points: 18 },
-    { title: "Write one gratitude note", details: "Capture one thing you are grateful for.", points: 14 },
-    { title: "Take a quiet pause", details: "Sit in silence for 5 minutes and reset.", points: 12 },
-    { title: "Reflect on values", details: "Choose one value and one way to live it today.", points: 16 },
-    { title: "Take a mindful walk", details: "Walk slowly for 10 minutes and notice your surroundings.", points: 16 },
-    { title: "Do a short meditation", details: "Use a 5-10 minute guided meditation.", points: 18 },
-    { title: "Write a self-kindness line", details: "Write one supportive statement to yourself.", points: 12 },
-    { title: "Disconnect for 15 minutes", details: "Step away from screens and reset your attention.", points: 14 },
-    { title: "Name today’s intention", details: "Choose one word for how you want to show up today.", points: 14 },
-    { title: "Do a body scan pause", details: "Spend 5 minutes noticing tension and releasing it.", points: 16 },
-    { title: "Step outside in silence", details: "Take a few quiet minutes outdoors without your phone.", points: 14 },
-    { title: "End-day gratitude trio", details: "Write three small things that went well today.", points: 18 },
+    {
+      title: "Practice calm breathing",
+      details: "Take 10 slow breaths and center yourself.",
+      points: 18,
+    },
+    {
+      title: "Write one gratitude note",
+      details: "Capture one thing you are grateful for.",
+      points: 14,
+    },
+    {
+      title: "Take a quiet pause",
+      details: "Sit in silence for 5 minutes and reset.",
+      points: 12,
+    },
+    {
+      title: "Reflect on values",
+      details: "Choose one value and one way to live it today.",
+      points: 16,
+    },
+    {
+      title: "Take a mindful walk",
+      details: "Walk slowly for 10 minutes and notice your surroundings.",
+      points: 16,
+    },
+    {
+      title: "Do a short meditation",
+      details: "Use a 5-10 minute guided meditation.",
+      points: 18,
+    },
+    {
+      title: "Write a self-kindness line",
+      details: "Write one supportive statement to yourself.",
+      points: 12,
+    },
+    {
+      title: "Disconnect for 15 minutes",
+      details: "Step away from screens and reset your attention.",
+      points: 14,
+    },
+    {
+      title: "Name today’s intention",
+      details: "Choose one word for how you want to show up today.",
+      points: 14,
+    },
+    {
+      title: "Do a body scan pause",
+      details: "Spend 5 minutes noticing tension and releasing it.",
+      points: 16,
+    },
+    {
+      title: "Step outside in silence",
+      details: "Take a few quiet minutes outdoors without your phone.",
+      points: 14,
+    },
+    {
+      title: "End-day gratitude trio",
+      details: "Write three small things that went well today.",
+      points: 18,
+    },
   ],
 };
 
@@ -147,7 +414,9 @@ function clamp(value, min = 0, max = 100) {
 }
 
 function averageWellness() {
-  return wellnessKeys.reduce((sum, key) => sum + state[key], 0) / wellnessKeys.length;
+  return (
+    wellnessKeys.reduce((sum, key) => sum + state[key], 0) / wellnessKeys.length
+  );
 }
 
 function currentLevel() {
@@ -161,7 +430,7 @@ function saveProgress() {
       level: state.level,
       exp: state.exp,
       checkins: state.checkins,
-    })
+    }),
   );
   saveWellnessState();
 }
@@ -175,7 +444,7 @@ function saveWellnessState() {
       social: state.social,
       intellectual: state.intellectual,
       spiritual: state.spiritual,
-    })
+    }),
   );
 }
 
@@ -208,9 +477,15 @@ function loadProgress() {
 
   try {
     const parsed = JSON.parse(raw);
-    const safeLevel = Number.isFinite(parsed?.level) ? Math.max(1, Math.floor(parsed.level)) : 1;
-    const safeExp = Number.isFinite(parsed?.exp) ? clamp(Math.floor(parsed.exp), 0, expRequiredForLevel(safeLevel) - 1) : 0;
-    const safeCheckins = Number.isFinite(parsed?.checkins) ? Math.max(0, Math.floor(parsed.checkins)) : 0;
+    const safeLevel = Number.isFinite(parsed?.level)
+      ? Math.max(1, Math.floor(parsed.level))
+      : 1;
+    const safeExp = Number.isFinite(parsed?.exp)
+      ? clamp(Math.floor(parsed.exp), 0, expRequiredForLevel(safeLevel) - 1)
+      : 0;
+    const safeCheckins = Number.isFinite(parsed?.checkins)
+      ? Math.max(0, Math.floor(parsed.checkins))
+      : 0;
 
     state.level = safeLevel;
     state.exp = safeExp;
@@ -224,8 +499,12 @@ function loadProgress() {
 }
 
 function rainConfetti(options = {}) {
-  const count = Number.isFinite(options.count) ? Math.max(20, Math.floor(options.count)) : 110;
-  const baseDuration = Number.isFinite(options.duration) ? Math.max(900, Math.floor(options.duration)) : 2200;
+  const count = Number.isFinite(options.count)
+    ? Math.max(20, Math.floor(options.count))
+    : 110;
+  const baseDuration = Number.isFinite(options.duration)
+    ? Math.max(900, Math.floor(options.duration))
+    : 2200;
 
   const container = document.createElement("div");
   container.setAttribute("aria-hidden", "true");
@@ -250,7 +529,8 @@ function rainConfetti(options = {}) {
     piece.style.left = `${Math.random() * 100}%`;
     piece.style.width = `${size}px`;
     piece.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.55)}px`;
-    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    piece.style.background =
+      CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
     piece.style.opacity = String(0.8 + Math.random() * 0.2);
     piece.style.borderRadius = Math.random() > 0.5 ? "1px" : "50%";
 
@@ -258,14 +538,16 @@ function rainConfetti(options = {}) {
     piece.animate(
       [
         { transform: "translate3d(0, -12px, 0) rotate(0deg)" },
-        { transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)` },
+        {
+          transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)`,
+        },
       ],
       {
         duration,
         delay,
         easing: "cubic-bezier(0.22, 0.7, 0.3, 1)",
         fill: "forwards",
-      }
+      },
     );
   }
 
@@ -287,7 +569,8 @@ function showLevelUpBanner(levelsGained = 1) {
   banner.style.transform = "translate(-50%, -20px) scale(0.96)";
   banner.style.padding = "0.75rem 1.25rem";
   banner.style.borderRadius = "999px";
-  banner.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  banner.style.fontFamily =
+    "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
   banner.style.fontSize = "clamp(1.1rem, 2.8vw, 1.7rem)";
   banner.style.letterSpacing = "0.08em";
   banner.style.color = "#ffffff";
@@ -310,7 +593,7 @@ function showLevelUpBanner(levelsGained = 1) {
       duration: 1550,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       fill: "forwards",
-    }
+    },
   );
 
   setTimeout(() => {
@@ -354,7 +637,10 @@ function shuffleCopy(items) {
 function generateDailyTasks() {
   const tasks = [];
   wellnessKeys.forEach((category) => {
-    const picked = shuffleCopy(taskPools[category]).slice(0, DAILY_TASKS_PER_CATEGORY);
+    const picked = shuffleCopy(taskPools[category]).slice(
+      0,
+      DAILY_TASKS_PER_CATEGORY,
+    );
     picked.forEach((task, index) => {
       tasks.push({
         id: `${todayKey()}-${category}-${index}`,
@@ -374,7 +660,7 @@ function fillMissingCategoryTasks(tasks) {
 
   wellnessKeys.forEach((category) => {
     const baseCount = normalizedTasks.filter(
-      (task) => task.category === category && !isCustomTask(task)
+      (task) => task.category === category && !isCustomTask(task),
     ).length;
 
     if (baseCount >= DAILY_TASKS_PER_CATEGORY) return;
@@ -382,10 +668,12 @@ function fillMissingCategoryTasks(tasks) {
     const existingTitles = new Set(
       normalizedTasks
         .filter((task) => task.category === category)
-        .map((task) => task.title)
+        .map((task) => task.title),
     );
 
-    const fallbackPool = shuffleCopy(taskPools[category]).filter((task) => !existingTitles.has(task.title));
+    const fallbackPool = shuffleCopy(taskPools[category]).filter(
+      (task) => !existingTitles.has(task.title),
+    );
     const needed = DAILY_TASKS_PER_CATEGORY - baseCount;
     fallbackPool.slice(0, needed).forEach((task, index) => {
       normalizedTasks.push({
@@ -408,7 +696,7 @@ function saveDailyTasks() {
     JSON.stringify({
       date: todayKey(),
       tasks: dailyTasks,
-    })
+    }),
   );
 }
 
@@ -448,7 +736,9 @@ function renderTaskList() {
       card.classList.add("hidden");
     }
 
-    const checkboxClass = task.completed ? `checkbox complete ${task.category}` : "checkbox";
+    const checkboxClass = task.completed
+      ? `checkbox complete ${task.category}`
+      : "checkbox";
     const pointsClass = task.completed ? "points complete" : "points";
     const disabled = task.completed || state.gameOver ? "disabled" : "";
     const safeTitle = escapeHtml(task.title);
@@ -485,7 +775,9 @@ function isCustomTask(task) {
 }
 
 function hasCustomGoalForCategory(category) {
-  return dailyTasks.some((task) => task.category === category && isCustomTask(task));
+  return dailyTasks.some(
+    (task) => task.category === category && isCustomTask(task),
+  );
 }
 
 function syncCustomGoalForm() {
@@ -533,7 +825,9 @@ function renderTabs() {
     tab.setAttribute("aria-selected", String(isActive));
   });
 
-  const taskCards = Array.from(document.querySelectorAll(".task-card[data-category]"));
+  const taskCards = Array.from(
+    document.querySelectorAll(".task-card[data-category]"),
+  );
   taskCards.forEach((card) => {
     const category = card.getAttribute("data-category");
     card.classList.toggle("hidden", category !== activeCategory);
