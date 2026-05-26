@@ -584,6 +584,112 @@ body {
   background: var(--paper);
 }
 
+.reflex-intro {
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.reflex-intro p {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.reflex-hud {
+  padding: 18px 30px;
+  border-bottom: 2px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  font-weight: 700;
+}
+
+.reflex-hud p {
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  background: var(--panel);
+}
+
+.reflex-game-area {
+  padding: 24px 30px 12px;
+}
+
+.reflex-track {
+  position: relative;
+  height: 280px;
+  border: 3px solid var(--line);
+  background: linear-gradient(180deg, #f4f4f4 0%, #eaeaea 100%);
+  overflow: hidden;
+}
+
+.reflex-lane-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-top: 2px dashed #9c9c9c;
+}
+
+.lane-1 {
+  top: 20%;
+}
+
+.lane-2 {
+  top: 50%;
+}
+
+.lane-3 {
+  top: 80%;
+}
+
+.reflex-player,
+.reflex-obstacle {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+}
+
+.reflex-player {
+  background: var(--color-coral);
+  border: 2px solid var(--line);
+  z-index: 3;
+  border-radius: 6px;
+}
+
+.reflex-obstacle {
+  background: #333;
+  border: 2px solid #111;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.reflex-obstacle--double {
+  background: #1e1e1e;
+  border-color: #000;
+}
+
+.reflex-track.reflex-hit {
+  box-shadow: inset 0 0 0 3px var(--color-red);
+}
+
+.reflex-controls {
+  padding: 14px 30px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  border-top: 2px solid var(--line);
+}
+
+.reflex-controls .primary-btn,
+.reflex-controls .secondary {
+  text-align: center;
+}
+
+.reflex-help {
+  padding: 0 30px 24px;
+  color: var(--muted);
+}
+
 .battle-header h1 {
   font-size: 28px;
   margin: 0;
@@ -815,6 +921,23 @@ body {
 
   .mini-games-grid {
     grid-template-columns: 1fr;
+  }
+
+  .reflex-hud,
+  .reflex-controls {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .reflex-game-area {
+    padding: 18px 18px 10px;
+  }
+
+  .reflex-controls,
+  .reflex-help,
+  .reflex-hud,
+  .reflex-intro {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .tab {

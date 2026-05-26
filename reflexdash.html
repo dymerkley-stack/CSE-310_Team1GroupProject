@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reflex Dash</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="mini-games-header reflex-header">
+        <a href="minigames.html" class="nav-link">← Back to Mini Games</a>
+        <h1>Reflex Dash</h1>
+        <a href="battle.html" class="nav-link">Arena Battles →</a>
+      </section>
+
+      <section class="reflex-intro">
+        <p>
+          Move between lanes and dodge incoming blocks. Survive as long as
+          possible to earn a Physical boost.
+        </p>
+      </section>
+
+      <section class="reflex-hud" aria-label="Game stats">
+        <p>Score: <strong id="reflexScore">0</strong></p>
+        <p>Best: <strong id="reflexBest">0</strong></p>
+        <p>Lives: <strong id="reflexLives">3</strong></p>
+        <p>Status: <strong id="reflexStatus">Ready</strong></p>
+      </section>
+
+      <section class="reflex-game-area">
+        <div id="reflexTrack" class="reflex-track" role="application" aria-label="Reflex Dash game area">
+          <div class="reflex-lane-mark lane-1"></div>
+          <div class="reflex-lane-mark lane-2"></div>
+          <div class="reflex-lane-mark lane-3"></div>
+          <div id="reflexPlayer" class="reflex-player" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="reflex-controls">
+        <button id="moveUpBtn" type="button" class="secondary">Move Up</button>
+        <button id="moveDownBtn" type="button" class="secondary">Move Down</button>
+        <button id="startReflexBtn" type="button" class="primary-btn">Start Run</button>
+        <button id="claimRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      </section>
+
+      <section class="reflex-help">
+        <p>Keyboard: Use Up/Down arrows or W/S keys to move lanes.</p>
+      </section>
+    </main>
+
+    <script src="reflexdash.js"></script>
+  </body>
+</html>
