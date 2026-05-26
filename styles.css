@@ -531,6 +531,59 @@ body {
   align-items: center;
 }
 
+.mini-games-header {
+  padding: 20px 30px;
+  border-bottom: 3px solid var(--line);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.mini-games-header h1 {
+  font-size: 28px;
+  text-align: center;
+}
+
+.mini-games-intro {
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.mini-games-intro p {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.mini-games-grid {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.mini-game-card {
+  border: 2px solid var(--line);
+  background: var(--panel);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.mini-game-card h2 {
+  font-size: 22px;
+}
+
+.mini-game-card p {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.mini-game-card--featured {
+  background: var(--paper);
+}
+
 .battle-header h1 {
   font-size: 28px;
   margin: 0;
@@ -752,6 +805,15 @@ body {
 @media (max-width: 800px) {
   .stat-bars,
   .tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-games-header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .mini-games-grid {
     grid-template-columns: 1fr;
   }
 
