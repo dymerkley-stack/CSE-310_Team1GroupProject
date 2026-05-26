@@ -690,6 +690,91 @@ body {
   color: var(--muted);
 }
 
+.focus-intro {
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.focus-intro p {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.focus-hud {
+  padding: 18px 30px;
+  border-bottom: 2px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  font-weight: 700;
+}
+
+.focus-hud p {
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  background: var(--panel);
+}
+
+.focus-board-area {
+  padding: 22px 30px 12px;
+}
+
+.focus-board {
+  width: min(420px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.focus-cell {
+  aspect-ratio: 1 / 1;
+  border: 2px solid var(--line);
+  background: #efefef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.focus-cell:disabled {
+  cursor: not-allowed;
+}
+
+.focus-cell:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.focus-cell--active {
+  background: #4d96ff;
+}
+
+.focus-cell--correct {
+  background: #6bcB77;
+}
+
+.focus-cell--wrong {
+  background: #ff6b6b;
+}
+
+.focus-board--locked .focus-cell {
+  opacity: 0.85;
+}
+
+.focus-controls {
+  padding: 14px 30px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+  border-top: 2px solid var(--line);
+}
+
+.focus-help {
+  padding: 0 30px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .battle-header h1 {
   font-size: 28px;
   margin: 0;
@@ -928,6 +1013,14 @@ body {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
+  .focus-hud {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .focus-controls {
+    grid-template-columns: 1fr;
+  }
+
   .reflex-game-area {
     padding: 18px 18px 10px;
   }
@@ -935,9 +1028,17 @@ body {
   .reflex-controls,
   .reflex-help,
   .reflex-hud,
-  .reflex-intro {
+  .reflex-intro,
+  .focus-hud,
+  .focus-help,
+  .focus-controls,
+  .focus-intro {
     padding-left: 18px;
     padding-right: 18px;
+  }
+
+  .focus-board-area {
+    padding: 16px 18px 10px;
   }
 
   .tab {

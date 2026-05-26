@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Match</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="mini-games-header">
+        <a href="minigames.html" class="nav-link">← Back to Mini Games</a>
+        <h1>Focus Match</h1>
+        <a href="battle.html" class="nav-link">Arena Battles →</a>
+      </section>
+
+      <section class="focus-intro">
+        <p>
+          Watch the pattern, then repeat it in order. Each round gets longer and
+          faster as your focus builds.
+        </p>
+      </section>
+
+      <section class="focus-hud" aria-label="Focus Match game stats">
+        <p>Score: <strong id="focusScore">0</strong></p>
+        <p>Best: <strong id="focusBest">0</strong></p>
+        <p>Round: <strong id="focusRound">1</strong></p>
+        <p>Lives: <strong id="focusLives">3</strong></p>
+        <p>Status: <strong id="focusStatus">Ready</strong></p>
+      </section>
+
+      <section class="focus-board-area">
+        <div id="focusBoard" class="focus-board" aria-label="Focus Match board">
+          <button class="focus-cell" type="button" data-index="0" aria-label="Cell 1"></button>
+          <button class="focus-cell" type="button" data-index="1" aria-label="Cell 2"></button>
+          <button class="focus-cell" type="button" data-index="2" aria-label="Cell 3"></button>
+          <button class="focus-cell" type="button" data-index="3" aria-label="Cell 4"></button>
+          <button class="focus-cell" type="button" data-index="4" aria-label="Cell 5"></button>
+          <button class="focus-cell" type="button" data-index="5" aria-label="Cell 6"></button>
+          <button class="focus-cell" type="button" data-index="6" aria-label="Cell 7"></button>
+          <button class="focus-cell" type="button" data-index="7" aria-label="Cell 8"></button>
+          <button class="focus-cell" type="button" data-index="8" aria-label="Cell 9"></button>
+        </div>
+      </section>
+
+      <section class="focus-controls">
+        <button id="startFocusBtn" type="button" class="primary-btn">Start Focus Run</button>
+        <button id="claimFocusRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      </section>
+
+      <section class="focus-help">
+        <p>Tip: Click cells in the same order they flash.</p>
+      </section>
+    </main>
+
+    <script src="focusmatch.js"></script>
+  </body>
+</html>
