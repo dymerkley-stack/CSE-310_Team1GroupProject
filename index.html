@@ -1,99 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wellness RPG Task Board</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <main class="wireframe" aria-live="polite">
-    <section class="top-section">
-      <div class="top-nav">
-        <a href="battle.html" class="nav-link battle-link">Battle Arena →</a>
-      </div>
-      <h1 class="character-name">Wellness Companion</h1>
-      <p id="levelText" class="level">Level 1</p>
-      <div class="exp-row" aria-label="Experience progress">
-        <div class="exp-track" role="presentation">
-          <div id="expFill" class="exp-fill"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wellness RPG Task Board</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="top-section">
+        <div class="top-nav">
+          <a href="battle.html" class="nav-link battle-link">Battle Arena →</a>
         </div>
-        <p id="expText" class="exp-text">0 / 100 EXP</p>
-      </div>
+        <h1 class="character-name">Wellness Companion</h1>
+        <p id="levelText" class="level">Level 1</p>
+        <div class="exp-row" aria-label="Experience progress">
+          <div class="exp-track" role="presentation">
+            <div id="expFill" class="exp-fill"></div>
+          </div>
+          <p id="expText" class="exp-text">0 / 100 EXP</p>
+        </div>
 
-      <div class="character-box">
-        <div id="petAvatar" class="stick-character" role="img" aria-label="Your virtual pet">(o^.^o)</div>
-      </div>
-      <p id="petMood" class="pet-mood">Your pet is calm and curious.</p>
+        <div class="character-box">
+          <div
+            id="petAvatar"
+            class="stick-character"
+            role="img"
+            aria-label="Your virtual pet"
+          >
+            (o^.^o)
+          </div>
+        </div>
+        <p id="petMood" class="pet-mood">Your pet is calm and curious.</p>
 
-      <div class="stat-bars">
-        <article class="stat-card">
-          <div class="stat-label">Physical</div>
-          <div class="bar"><div id="physicalBar" class="bar-fill physical"></div></div>
-          <div id="physicalValue" class="stat-value">70</div>
-        </article>
+        <div class="stat-bars">
+          <article class="stat-card">
+            <div class="stat-label">Physical</div>
+            <div class="bar">
+              <div id="physicalBar" class="bar-fill physical"></div>
+            </div>
+            <div id="physicalValue" class="stat-value">70</div>
+          </article>
 
-        <article class="stat-card">
-          <div class="stat-label">Mental</div>
-          <div class="bar"><div id="mentalBar" class="bar-fill mental"></div></div>
-          <div id="mentalValue" class="stat-value">70</div>
-        </article>
+          <article class="stat-card">
+            <div class="stat-label">Mental</div>
+            <div class="bar">
+              <div id="mentalBar" class="bar-fill mental"></div>
+            </div>
+            <div id="mentalValue" class="stat-value">70</div>
+          </article>
 
-        <article class="stat-card">
-          <div class="stat-label">Social</div>
-          <div class="bar"><div id="socialBar" class="bar-fill social"></div></div>
-          <div id="socialValue" class="stat-value">70</div>
-        </article>
+          <article class="stat-card">
+            <div class="stat-label">Social</div>
+            <div class="bar">
+              <div id="socialBar" class="bar-fill social"></div>
+            </div>
+            <div id="socialValue" class="stat-value">70</div>
+          </article>
 
-        <article class="stat-card">
-          <div class="stat-label">Intellectual</div>
-          <div class="bar"><div id="intellectualBar" class="bar-fill intellectual"></div></div>
-          <div id="intellectualValue" class="stat-value">70</div>
-        </article>
+          <article class="stat-card">
+            <div class="stat-label">Intellectual</div>
+            <div class="bar">
+              <div id="intellectualBar" class="bar-fill intellectual"></div>
+            </div>
+            <div id="intellectualValue" class="stat-value">70</div>
+          </article>
 
-        <article class="stat-card">
-          <div class="stat-label">Spiritual</div>
-          <div class="bar"><div id="spiritualBar" class="bar-fill spiritual"></div></div>
-          <div id="spiritualValue" class="stat-value">70</div>
-        </article>
-      </div>
-    </section>
-
-    <nav class="tabs" aria-label="Wellness categories">
-      <button class="tab active" type="button" data-tab="physical" aria-selected="true">Physical</button>
-      <button class="tab" type="button" data-tab="mental" aria-selected="false">Mental</button>
-      <button class="tab" type="button" data-tab="social" aria-selected="false">Social</button>
-      <button class="tab" type="button" data-tab="intellectual" aria-selected="false">Intellectual</button>
-      <button class="tab" type="button" data-tab="spiritual" aria-selected="false">Spiritual</button>
-    </nav>
-
-    <section class="task-area">
-      <div class="section-header">
-        <h2 id="taskHeader">Physical Tasks</h2>
-      </div>
-
-      <div id="taskList" class="task-list"></div>
-
-      <section class="custom-goals" aria-labelledby="customGoalsHeader">
-        <h3 id="customGoalsHeader">Add Daily Goals</h3>
-        <button id="customGoalToggle" class="goal-toggle" type="button" aria-expanded="false" aria-controls="customGoalPanel">+ Add Goal</button>
-        <div id="customGoalPanel" class="custom-goal-panel" hidden>
-          <p id="customGoalHint" class="custom-goal-hint">Add one extra Physical goal for today.</p>
-          <form id="customGoalForm" class="add-goal-row">
-            <label id="customGoalLabel" for="customGoalInput">Physical</label>
-            <input id="customGoalInput" name="goalTitle" type="text" placeholder="Example: 5 push-ups" maxlength="100" required />
-            <button id="customGoalSubmit" type="submit" class="secondary">Add</button>
-          </form>
+          <article class="stat-card">
+            <div class="stat-label">Spiritual</div>
+            <div class="bar">
+              <div id="spiritualBar" class="bar-fill spiritual"></div>
+            </div>
+            <div id="spiritualValue" class="stat-value">70</div>
+          </article>
         </div>
       </section>
 
-      <div class="utility-row">
-        <button id="resetGoalsBtn" class="secondary dev-btn" type="button">Reset Goals (Dev)</button>
-        <button id="resetBtn" class="secondary">Reset Pet</button>
-      </div>
-    </section>
-  </main>
+      <nav class="tabs" aria-label="Wellness categories">
+        <button
+          class="tab active"
+          type="button"
+          data-tab="physical"
+          aria-selected="true"
+        >
+          Physical
+        </button>
+        <button
+          class="tab"
+          type="button"
+          data-tab="mental"
+          aria-selected="false"
+        >
+          Mental
+        </button>
+        <button
+          class="tab"
+          type="button"
+          data-tab="social"
+          aria-selected="false"
+        >
+          Social
+        </button>
+        <button
+          class="tab"
+          type="button"
+          data-tab="intellectual"
+          aria-selected="false"
+        >
+          Intellectual
+        </button>
+        <button
+          class="tab"
+          type="button"
+          data-tab="spiritual"
+          aria-selected="false"
+        >
+          Spiritual
+        </button>
+      </nav>
 
-  <script src="script.js"></script>
-</body>
+      <section class="task-area">
+        <div class="section-header">
+          <h2 id="taskHeader">Physical Tasks</h2>
+        </div>
+
+        <div id="taskList" class="task-list"></div>
+
+        <section class="custom-goals" aria-labelledby="customGoalsHeader">
+          <h3 id="customGoalsHeader">Add Daily Goals</h3>
+          <button
+            id="customGoalToggle"
+            class="goal-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="customGoalPanel"
+          >
+            + Add Goal
+          </button>
+          <div id="customGoalPanel" class="custom-goal-panel" hidden>
+            <p id="customGoalHint" class="custom-goal-hint">
+              Add one extra Physical goal for today.
+            </p>
+            <form id="customGoalForm" class="add-goal-row">
+              <label id="customGoalLabel" for="customGoalInput">Physical</label>
+              <input
+                id="customGoalInput"
+                name="goalTitle"
+                type="text"
+                placeholder="Example: 5 push-ups"
+                maxlength="100"
+                required
+              />
+              <button id="customGoalSubmit" type="submit" class="secondary">
+                Add
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <div class="utility-row">
+          <button id="resetGoalsBtn" class="secondary dev-btn" type="button">
+            Reset Goals (Dev)
+          </button>
+          <button id="resetBtn" class="secondary">Reset Pet</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="script.js"></script>
+  </body>
 </html>
