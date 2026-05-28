@@ -856,9 +856,7 @@ function render() {
     labels[key].textContent = String(Math.round(value));
   });
 
-  const avg = averageWellness();
-  petMood.textContent = moodText(avg);
-  petAvatar.textContent = avatarFace(avg);
+  
   if (levelText) {
     levelText.textContent = `Level ${currentLevel()}`;
   }

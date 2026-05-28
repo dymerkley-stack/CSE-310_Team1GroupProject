@@ -83,7 +83,7 @@ body {
 .character-box {
   width: 180px;
   height: 180px;
-  border: 2px dashed #777;
+  border: 2px solid #777;
   margin: 0 auto 14px;
   display: flex;
   align-items: center;
@@ -91,6 +91,11 @@ body {
   background: var(--panel);
 }
 
+#petAvatar {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* Keeps the potato from stretching distorting */
+}
 
 /* Add Goal Button Styling */
 .add-goal-container {
@@ -164,16 +169,7 @@ body {
   justify-content: flex-end;
   gap: 10px;
 }
-.stick-character {
-  font-size: 42px;
-  line-height: 1;
-}
 
-.pet-mood {
-  font-size: 15px;
-  margin-bottom: 24px;
-  color: var(--muted);
-}
 
 .stat-bars {
   display: grid;
