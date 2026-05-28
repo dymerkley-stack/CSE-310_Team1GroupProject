@@ -13,11 +13,11 @@ async function testDatabase() {
 testDatabase();
 
 const initialState = {
-  physical: 70,
-  mental: 70,
-  social: 70,
-  intellectual: 70,
-  spiritual: 70,
+  physical: 50,
+  mental: 50,
+  social: 50,
+  intellectual: 50,
+  spiritual: 50,
   checkins: 0,
   level: 1,
   exp: 0,
