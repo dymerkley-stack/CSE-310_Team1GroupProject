@@ -848,13 +848,6 @@ function moodText(avg) {
   return "Your pet feels neglected. Do a wellness action now.";
 }
 
-function avatarFace(avg) {
-  if (state.gameOver) return "(x_x)";
-  if (avg >= 80) return "(^o^)/";
-  if (avg >= 60) return "(o^.^o)";
-  if (avg >= 40) return "(._.)";
-  return "(;_; )";
-}
 
 function render() {
   Object.keys(bars).forEach((key) => {
