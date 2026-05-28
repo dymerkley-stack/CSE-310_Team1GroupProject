@@ -885,21 +885,7 @@ function render() {
   });
 }
 
-function gameTick() {
-  if (state.gameOver) return;
 
-  state.physical = clamp(state.physical - 0.2);
-  state.mental = clamp(state.mental - 0.16);
-  state.social = clamp(state.social - 0.18);
-  state.intellectual = clamp(state.intellectual - 0.17);
-  state.spiritual = clamp(state.spiritual - 0.13);
-
-  if (wellnessKeys.some((key) => state[key] === 0)) {
-    state.gameOver = true;
-  }
-
-  render();
-}
 
 function applyAction(action) {
   if (state.gameOver) return;
@@ -1037,4 +1023,4 @@ loadDailyTasks();
 renderTaskList();
 renderTabs();
 render();
-setInterval(gameTick, 12000);
+
