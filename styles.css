@@ -251,35 +251,36 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
+  background: var(--paper);
+  color: var(--ink);
 }
-
-.tab:nth-child(1) {
-  background: var(--color-coral);
-}
-
-.tab:nth-child(2) {
-  background: var(--color-teal);
-}
-
-.tab:nth-child(3) {
-  background: var(--color-red);
-}
-
-.tab:nth-child(4) {
-  background: var(--color-lime);
-}
-
-.tab:nth-child(5) {
-  background: var(--color-dark-purple);
-}
-
 
 .tab:last-child {
   border-right: none;
 }
 
 .tab.active {
-  background: var(--paper);
+  color: #fff;
+}
+
+.tab.active[data-tab="physical"] {
+  background: var(--color-coral);
+}
+
+.tab.active[data-tab="mental"] {
+  background: var(--color-teal);
+}
+
+.tab.active[data-tab="social"] {
+  background: var(--color-red);
+}
+
+.tab.active[data-tab="intellectual"] {
+  background: var(--color-lime);
+}
+
+.tab.active[data-tab="spiritual"] {
+  background: var(--color-dark-purple);
 }
 
 .tab:focus-visible {
