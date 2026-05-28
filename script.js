@@ -1,16 +1,19 @@
-import { loadLatestState, saveGameState } from "./database.js";
+import {
+  loadLatestState,
+  saveGameState,
+  saveToCloud,
+  getPlayerId,
+} from "./database.js";
 
 async function testDatabase() {
   // TEST SAVE
-  await saveGameState(currentState);
+  await saveGameState(state);
 
   // TEST LOAD
   const pets = await loadLatestState();
 
   console.log("DATABASE RESPONSE:", pets);
 }
-
-testDatabase();
 
 const initialState = {
   physical: 50,
@@ -25,6 +28,23 @@ const initialState = {
 };
 
 const state = { ...initialState };
+
+async function syncCloudSave() {
+  const cloudData = await loadLatestState();
+
+  if (cloudData) {
+    Object.keys(cloudData).forEach((key) => {
+      if (key in state && cloudData[key] !== null) {
+        state[key] = cloudData[key];
+      }
+    });
+  }
+}
+async function initializeGame() {
+  await syncCloudSave();
+  console.log("Cloud save loaded:", state);
+}
+
 const wellnessKeys = [
   "physical",
   "mental",
@@ -56,6 +76,13 @@ const DEFAULT_CATEGORY_POINTS = {
   intellectual: 20,
   spiritual: 18,
 };
+initializeGame();
+testDatabase();
+console.log("Before:", state.physical);
+
+state.physical = 20;
+
+console.log("After:", state.physical);
 
 const taskPools = {
   physical: [
@@ -423,7 +450,7 @@ function currentLevel() {
   return state.level;
 }
 
-function saveProgress() {
+async function saveProgress() {
   localStorage.setItem(
     WELLNESS_PROGRESS_KEY,
     JSON.stringify({
@@ -433,6 +460,8 @@ function saveProgress() {
     }),
   );
   saveWellnessState();
+  const playerId = await getPlayerId();
+  await saveToCloud(state, playerId);
 }
 
 function saveWellnessState() {
@@ -876,8 +905,6 @@ function render() {
   });
 }
 
-
-
 function applyAction(action) {
   if (state.gameOver) return;
 
@@ -1014,4 +1041,3 @@ loadDailyTasks();
 renderTaskList();
 renderTabs();
 render();
-
