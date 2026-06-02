@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kitchen Catch</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="mini-games-header">
+        <a href="minigames.html" class="nav-link">&larr; Back to Mini Games</a>
+        <h1>Kitchen Catch</h1>
+        <a href="battle.html" class="nav-link">Arena Battles &rarr;</a>
+      </section>
+
+      <section class="kitchen-intro">
+        <p>
+          Catch healthy food and avoid junk. Keep your pet's kitchen routine on
+          track to earn Physical and Social rewards.
+        </p>
+      </section>
+
+      <section class="kitchen-hud" aria-label="Kitchen Catch game stats">
+        <p>Score: <strong id="kitchenScore">0</strong></p>
+        <p>Best: <strong id="kitchenBest">0</strong></p>
+        <p>Lives: <strong id="kitchenLives">3</strong></p>
+        <p>Time: <strong id="kitchenTime">60</strong>s</p>
+        <p>Status: <strong id="kitchenStatus">Ready</strong></p>
+      </section>
+
+      <section class="kitchen-game-area">
+        <div id="kitchenField" class="kitchen-field" role="application" aria-label="Kitchen Catch game field">
+          <div id="kitchenCatcher" class="kitchen-catcher" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="kitchen-controls">
+        <button id="kitchenLeftBtn" type="button" class="secondary">Move Left</button>
+        <button id="kitchenRightBtn" type="button" class="secondary">Move Right</button>
+        <button id="startKitchenBtn" type="button" class="primary-btn">Start Round</button>
+        <button id="claimKitchenRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      </section>
+
+      <section class="kitchen-help">
+        <p>Keyboard: Use Left/Right arrows or A/D keys to move.</p>
+      </section>
+    </main>
+
+    <script src="kitchencatch.js"></script>
+  </body>
+</html>

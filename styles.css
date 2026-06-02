@@ -583,6 +583,50 @@ body {
   background: var(--paper);
 }
 
+.mini-games-ideas {
+  padding: 10px 30px 30px;
+  border-top: 2px solid var(--line);
+  background: var(--paper);
+}
+
+.mini-games-ideas h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.mini-games-ideas > p {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.mini-games-ideas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.mini-game-idea-card {
+  border: 2px dashed var(--line);
+  background: var(--panel);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.mini-game-idea-card h3 {
+  font-size: 18px;
+}
+
+.mini-game-idea-card p {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.idea-impact {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .reflex-intro {
   padding: 20px 30px;
   border-bottom: 2px solid var(--line);
@@ -772,6 +816,94 @@ body {
   padding: 0 30px 24px;
   color: var(--muted);
   text-align: center;
+}
+
+.kitchen-intro {
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.kitchen-intro p {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.kitchen-hud {
+  padding: 18px 30px;
+  border-bottom: 2px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  gap: 10px;
+  font-weight: 700;
+}
+
+.kitchen-hud p {
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  background: var(--panel);
+}
+
+.kitchen-game-area {
+  padding: 22px 30px 12px;
+}
+
+.kitchen-field {
+  position: relative;
+  height: 320px;
+  border: 3px solid var(--line);
+  background: linear-gradient(180deg, #f9f9f9 0%, #efefef 100%);
+  overflow: hidden;
+}
+
+.kitchen-catcher {
+  position: absolute;
+  width: 88px;
+  height: 20px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: #f6d55c;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.kitchen-item {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--line);
+  border-radius: 7px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.kitchen-item--good {
+  background: #6bcB77;
+}
+
+.kitchen-item--junk {
+  background: #ff6b6b;
+}
+
+.kitchen-catcher.kitchen-uses-sprite,
+.kitchen-item.kitchen-uses-sprite {
+  border: none;
+  background-color: transparent;
+}
+
+.kitchen-controls {
+  padding: 14px 30px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  border-top: 2px solid var(--line);
+}
+
+.kitchen-help {
+  padding: 0 30px 24px;
+  color: var(--muted);
 }
 
 .battle-header h1 {
@@ -1007,12 +1139,26 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .mini-games-ideas {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .mini-games-ideas-grid {
+    grid-template-columns: 1fr;
+  }
+
   .reflex-hud,
   .reflex-controls {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .focus-hud {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .kitchen-hud,
+  .kitchen-controls {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
@@ -1028,6 +1174,10 @@ body {
   .reflex-help,
   .reflex-hud,
   .reflex-intro,
+  .kitchen-intro,
+  .kitchen-hud,
+  .kitchen-controls,
+  .kitchen-help,
   .focus-hud,
   .focus-help,
   .focus-controls,
@@ -1037,6 +1187,10 @@ body {
   }
 
   .focus-board-area {
+    padding: 16px 18px 10px;
+  }
+
+  .kitchen-game-area {
     padding: 16px 18px 10px;
   }
 
