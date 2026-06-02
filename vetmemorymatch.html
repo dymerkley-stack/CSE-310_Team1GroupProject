@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vet Memory Match</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="mini-games-header">
+        <a href="minigames.html" class="nav-link">&larr; Back to Mini Games</a>
+        <h1>Vet Memory Match</h1>
+        <a href="battle.html" class="nav-link">Arena Battles &rarr;</a>
+      </section>
+
+      <section class="vet-intro">
+        <p>
+          Flip and match vet care tools before time runs out. Clear more pairs for
+          better Health and Intellectual rewards.
+        </p>
+      </section>
+
+      <section class="vet-hud" aria-label="Vet Memory Match game stats">
+        <p>Score: <strong id="vetScore">0</strong></p>
+        <p>Best: <strong id="vetBest">0</strong></p>
+        <p>Pairs: <strong id="vetPairs">0</strong>/<strong id="vetPairGoal">6</strong></p>
+        <p>Lives: <strong id="vetLives">4</strong></p>
+        <p>Time: <strong id="vetTime">70</strong>s</p>
+        <p>Status: <strong id="vetStatus">Ready</strong></p>
+      </section>
+
+      <section class="vet-board-area">
+        <div id="vetBoard" class="vet-board" aria-label="Vet Memory Match board"></div>
+      </section>
+
+      <section class="vet-controls">
+        <button id="startVetBtn" type="button" class="primary-btn">Start Vet Round</button>
+        <button id="claimVetRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      </section>
+
+      <section class="vet-help">
+        <p>Tip: Match pairs quickly to keep your score multiplier climbing.</p>
+      </section>
+    </main>
+
+    <script src="vetmemorymatch.js"></script>
+  </body>
+</html>

@@ -38,7 +38,7 @@ const SPOT_PROGRESS_VISIBLE_SECONDS = 0.4;
 const SPONGE_WIDTH = 62;
 const SPONGE_HEIGHT = 40;
 const SPONGE_TOP_LIMIT = 72;
-const BASE_SPAWN_INTERVAL = 1.25;
+const BASE_SPAWN_INTERVAL = 1.35;
 
 let score = 0;
 let bestScore = 0;
