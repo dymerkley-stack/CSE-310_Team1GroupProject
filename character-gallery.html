@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Character Gallery</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="character-gallery-header">
+        <article class="mini-game-card character-preview-card">
+          <h2>Character Preview</h2>
+          <figure class="preview-figure">
+            <img id="previewImage" src="Avatar/Default.png" alt="Current character preview" />
+            <figcaption id="previewLabel">The Spud Bud</figcaption>
+          </figure>
+          <p id="previewText">Your current unlocked character will appear here.</p>
+        </article>
+
+        <div class="character-gallery-title">
+          <h1>Character Designs</h1>
+          <p>Browse alternate character designs below. Add your own text under each image.</p>
+          <a href="index.html" class="nav-link">← Back to Home</a>
+        </div>
+      </section>
+
+      <section class="character-gallery-grid" aria-label="Character design gallery">
+        <article class="character-design-card" data-level="1">
+          <img src="Avatar/Default.png" alt="The Spud Bud" />
+          <p class="character-label">The Spud Bud (Level 1)</p>
+        </article>
+        <article class="character-design-card locked" data-level="5">
+          <img src="Avatar/Sprout.png" alt="The Spud Sprout" />
+          <p class="character-label">The Spud Sprout (Level 5)</p>
+        </article>
+        <article class="character-design-card locked" data-level="10">
+          <img src="Avatar/Farmer.png" alt="The Spud Farmer" />
+          <p class="character-label">The Spud Farmer (Level 10)</p>
+        </article>
+        <article class="character-design-card locked" data-level="15">
+          <img src="Avatar/Gym.png" alt="The Gym Spud" />
+          <p class="character-label">The Gym Spud (Level 15)</p>
+        </article>
+        <article class="character-design-card locked" data-level="20">
+          <img src="Avatar/Sleepwear.png" alt="The Sleepy Spud" />
+          <p class="character-label">The Sleepy Spud (Level 20)</p>
+        </article>
+        <article class="character-design-card locked" data-level="25">
+          <img src="Avatar/Old_Money.png" alt="The Loaded Spud" />
+          <p class="character-label">The Loaded Spud (Level 25)</p>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="gallery.js"></script>
+  </body>
+</html>
