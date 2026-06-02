@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bath Time Balance</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wireframe" aria-live="polite">
+      <section class="mini-games-header">
+        <a href="minigames.html" class="nav-link">&larr; Back to Mini Games</a>
+        <h1>Bath Time Balance</h1>
+        <a href="battle.html" class="nav-link">Arena Battles &rarr;</a>
+      </section>
+
+      <section class="bath-intro">
+        <p>
+          Keep the water in the comfort zone while cleaning muddy spots. A calm,
+          balanced bath gives better rewards.
+        </p>
+      </section>
+
+      <section class="bath-hud" aria-label="Bath Time Balance game stats">
+        <p>Score: <strong id="bathScore">0</strong></p>
+        <p>Best: <strong id="bathBest">0</strong></p>
+        <p>Calm: <strong id="bathCalm">3</strong></p>
+        <p>Time: <strong id="bathTime">50</strong>s</p>
+        <p>Temp: <strong id="bathTemp">50</strong></p>
+        <p>Status: <strong id="bathStatus">Ready</strong></p>
+      </section>
+
+      <section class="bath-game-area">
+        <div id="bathArena" class="bath-arena" role="application" aria-label="Bath Time Balance game arena">
+          <div class="bath-temp-meter" aria-hidden="true">
+            <div class="bath-zone bath-zone--cold"></div>
+            <div class="bath-zone bath-zone--comfort"></div>
+            <div class="bath-zone bath-zone--hot"></div>
+            <div id="bathTempNeedle" class="bath-temp-needle"></div>
+          </div>
+          <div id="bathPet" class="bath-pet" aria-hidden="true"></div>
+          <div id="bathSpotsLayer" class="bath-spots-layer" aria-label="Dirty spots"></div>
+          <div id="bathSponge" class="bath-sponge" aria-label="Sponge tool" role="img"></div>
+        </div>
+      </section>
+
+      <section class="bath-controls">
+        <button id="coolBathBtn" type="button" class="secondary">Cool Water</button>
+        <button id="heatBathBtn" type="button" class="secondary">Warm Water</button>
+        <button id="startBathBtn" type="button" class="primary-btn">Start Bath</button>
+        <button id="claimBathRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      </section>
+
+      <section class="bath-help">
+        <p>
+          Tip: Drag the sponge over muddy spots while the temperature marker stays
+          in the green zone.
+        </p>
+      </section>
+    </main>
+
+    <script src="bathtimebalance.js"></script>
+  </body>
+</html>

@@ -922,6 +922,213 @@ body {
   color: var(--muted);
 }
 
+.bath-intro {
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.bath-intro p {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.bath-hud {
+  padding: 18px 30px;
+  border-bottom: 2px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(95px, 1fr));
+  gap: 10px;
+  font-weight: 700;
+}
+
+.bath-hud p {
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  background: var(--panel);
+}
+
+.bath-game-area {
+  padding: 22px 30px 12px;
+}
+
+.bath-arena {
+  position: relative;
+  height: 340px;
+  border: 3px solid var(--line);
+  background: linear-gradient(180deg, #f2fbff 0%, #d6eefc 42%, #c1e3f6 100%);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.bath-temp-meter {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  height: 20px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.bath-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.bath-zone--cold {
+  left: 0;
+  width: 42%;
+  background: #8ec9ff;
+}
+
+.bath-zone--comfort {
+  left: 42%;
+  width: 16%;
+  background: #8be28b;
+}
+
+.bath-zone--hot {
+  right: 0;
+  width: 42%;
+  background: #ffa08e;
+}
+
+.bath-temp-needle {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 24px;
+  background: #111;
+  transform: translateX(-50%);
+}
+
+.bath-pet {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  width: 116px;
+  height: 116px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: #fef6c7;
+  transform: translateX(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.bath-spots-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.bath-sponge {
+  position: absolute;
+  width: 62px;
+  height: 40px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffe58a 0%, #ffd24f 100%);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+  cursor: grab;
+  z-index: 7;
+  user-select: none;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.bath-sponge::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.bath-sponge--scrubbing {
+  cursor: grabbing;
+  transform-origin: center;
+}
+
+.bath-spot {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: #7b4f33;
+  cursor: pointer;
+  transition: transform 120ms ease;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  z-index: 6;
+  overflow: visible;
+}
+
+.bath-spot:hover {
+  transform: scale(1.06);
+}
+
+.bath-spot-progress {
+  position: absolute;
+  left: -4px;
+  top: -11px;
+  width: 44px;
+  height: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 100ms ease, transform 100ms ease;
+  pointer-events: none;
+}
+
+.bath-spot-progress--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bath-spot-progress-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #5aa9ff 0%, #6bcB77 100%);
+  transition: width 60ms linear;
+}
+
+.bath-pet.bath-uses-sprite,
+.bath-sponge.bath-uses-sprite,
+.bath-spot.bath-uses-sprite {
+  border: none;
+  background-color: transparent;
+}
+
+.bath-sponge.bath-uses-sprite::before {
+  display: none;
+}
+
+.bath-controls {
+  padding: 14px 30px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  border-top: 2px solid var(--line);
+}
+
+.bath-help {
+  padding: 0 30px 24px;
+  color: var(--muted);
+}
 .battle-header h1 {
   font-size: 28px;
   margin: 0;
@@ -1191,10 +1398,11 @@ body {
   }
 
   .kitchen-hud,
-  .kitchen-controls {
+  .kitchen-controls,
+  .bath-hud,
+  .bath-controls {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
-
   .focus-controls {
     grid-template-columns: 1fr;
   }
@@ -1211,6 +1419,10 @@ body {
   .kitchen-hud,
   .kitchen-controls,
   .kitchen-help,
+  .bath-intro,
+  .bath-hud,
+  .bath-controls,
+  .bath-help,
   .focus-hud,
   .focus-help,
   .focus-controls,
@@ -1227,6 +1439,9 @@ body {
     padding: 16px 18px 10px;
   }
 
+  .bath-game-area {
+    padding: 16px 18px 10px;
+  }
   .tab {
     border-right: none;
     border-bottom: 2px solid var(--line);
