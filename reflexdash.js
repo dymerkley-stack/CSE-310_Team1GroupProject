@@ -13,6 +13,13 @@ const claimRewardBtn = document.getElementById("claimRewardBtn");
 const BEST_SCORE_KEY = "reflexDashBestScore";
 const WELLNESS_STATE_KEY = "wellnessState";
 
+// Optional sprite paths. Leave empty strings to keep fallback placeholders.
+const SPRITE_ASSETS = {
+  player: "",
+  obstacle: "",
+  obstacleDouble: "",
+};
+
 const PLAYER_X = 90;
 const PLAYER_SIZE = 32;
 const OBSTACLE_SIZE = 30;
@@ -39,6 +46,7 @@ let paused = false;
 let spawnTimer = 0;
 let spawnInterval = 0.95;
 let lastFrame = 0;
+const spriteLoadCache = new Map();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -92,6 +100,58 @@ function removeObstacleAt(index) {
   obstacles.splice(index, 1);
 }
 
+function loadSprite(path) {
+  if (!path) {
+    return Promise.resolve(false);
+  }
+
+  const cached = spriteLoadCache.get(path);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = path;
+  });
+
+  spriteLoadCache.set(path, promise);
+  return promise;
+}
+
+function enableSprite(element, path) {
+  element.classList.add("reflex-uses-sprite");
+  element.style.backgroundImage = `url("${path}")`;
+}
+
+function disableSprite(element) {
+  element.classList.remove("reflex-uses-sprite");
+  element.style.backgroundImage = "";
+}
+
+function applySpriteIfAvailable(element, path) {
+  if (!path) {
+    disableSprite(element);
+    return;
+  }
+
+  element.dataset.spritePath = path;
+
+  loadSprite(path).then((loaded) => {
+    if (!element.isConnected || element.dataset.spritePath !== path) {
+      return;
+    }
+
+    if (loaded) {
+      enableSprite(element, path);
+    } else {
+      disableSprite(element);
+    }
+  });
+}
+
 function createObstacle(lanes) {
   const obstacle = document.createElement("div");
   obstacle.className = "reflex-obstacle";
@@ -108,6 +168,10 @@ function createObstacle(lanes) {
   if (sortedLanes.length > 1) {
     obstacle.classList.add("reflex-obstacle--double");
   }
+
+  const obstacleSprite =
+    sortedLanes.length > 1 ? SPRITE_ASSETS.obstacleDouble : SPRITE_ASSETS.obstacle;
+  applySpriteIfAvailable(obstacle, obstacleSprite);
 
   obstacle.style.height = `${height}px`;
 
@@ -390,6 +454,7 @@ function init() {
   loadBestScore();
   computeLaneHeights();
   movePlayerToLane(1);
+  applySpriteIfAvailable(player, SPRITE_ASSETS.player);
   updateHud();
   bindEvents();
 

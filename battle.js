@@ -14,6 +14,20 @@ const BASE_PLAYER_MAX_HEALTH = 500;
 const PLAYER_HEALTH_LEVEL_MODIFIER = 0.08;
 const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
 
+// Optional sprite paths for battle avatars. Leave paths empty for text fallback.
+const SPRITE_ASSETS = {
+  player: "",
+  enemies: {
+    Slime: "",
+    Goblin: "",
+    Orc: "",
+    Dragon: "",
+    Demon: "",
+  },
+};
+
+const PLAYER_FALLBACK_AVATAR = "(o^.^o)";
+
 let playerProgress = { level: 1, exp: 0, checkins: 0 };
 let playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
 let battleState = {
@@ -33,6 +47,8 @@ let battleState = {
   dungeon: { active: false, floor: 0, totalFloors: DUNGEON_TOTAL_FLOORS },
   lastBattleWon: null,
 };
+
+const spriteLoadCache = new Map();
 
 const monsters = [
   { name: "Slime", baseHealth: 150, difficulty: 1 },
@@ -101,6 +117,64 @@ const enemySpecialMoves = {
   Dragon: { name: "Fire Breath", multiplier: 2.0 },
   Demon: { name: "Abyssal Ruin", multiplier: 2.2 },
 };
+
+function loadSprite(path) {
+  if (!path) {
+    return Promise.resolve(false);
+  }
+
+  const cached = spriteLoadCache.get(path);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = path;
+  });
+
+  spriteLoadCache.set(path, promise);
+  return promise;
+}
+
+function enableAvatarSprite(element, path) {
+  element.classList.add("battle-avatar-uses-sprite");
+  element.style.backgroundImage = `url("${path}")`;
+}
+
+function disableAvatarSprite(element) {
+  element.classList.remove("battle-avatar-uses-sprite");
+  element.style.backgroundImage = "";
+}
+
+function applyAvatarSpriteWithFallback(element, spritePath, fallbackText) {
+  element.textContent = fallbackText;
+
+  if (!spritePath) {
+    disableAvatarSprite(element);
+    return;
+  }
+
+  element.dataset.spritePath = spritePath;
+
+  loadSprite(spritePath).then((loaded) => {
+    if (!element.isConnected || element.dataset.spritePath !== spritePath) {
+      return;
+    }
+
+    if (loaded) {
+      enableAvatarSprite(element, spritePath);
+    } else {
+      disableAvatarSprite(element);
+    }
+  });
+}
+
+function getEnemySpritePath(enemyName) {
+  return SPRITE_ASSETS.enemies[enemyName] ?? "";
+}
 
 function getScaledSynergyEnergyRestore() {
   return Math.min(12, 4 + Math.floor(playerProgress.level / 5));
@@ -576,6 +650,9 @@ function renderBattleLog() {
 }
 
 function renderBattleUI() {
+  const playerAvatar = document.getElementById("playerPetAvatar");
+  applyAvatarSpriteWithFallback(playerAvatar, SPRITE_ASSETS.player, PLAYER_FALLBACK_AVATAR);
+
   document.getElementById("playerLevel").textContent = `Level ${playerProgress.level}`;
   document.getElementById("playerPhysical").textContent = calculatePetStats("physical");
   document.getElementById("playerMental").textContent = calculatePetStats("mental");
@@ -588,8 +665,15 @@ function renderBattleUI() {
   document.getElementById("playerHealth").textContent = `Health: ${Math.max(0, battleState.playerHealth)} / ${battleState.playerMaxHealth}`;
 
   if (battleState.currentEnemy) {
+    const enemyAvatar = document.getElementById("enemyAvatar");
+    const enemyFallbackAvatar = getMonsterAscii(battleState.currentEnemy.name);
+    applyAvatarSpriteWithFallback(
+      enemyAvatar,
+      getEnemySpritePath(battleState.currentEnemy.name),
+      enemyFallbackAvatar
+    );
+
     document.getElementById("enemyName").textContent = battleState.currentEnemy.name;
-    document.getElementById("enemyAvatar").textContent = getMonsterAscii(battleState.currentEnemy.name);
     const enemyHealthPercent = Math.round((battleState.currentEnemy.health / battleState.currentEnemy.maxHealth) * 100);
     document.getElementById("enemyHealthFill").style.width = `${enemyHealthPercent}%`;
     document.getElementById("enemyHealth").textContent = `Health: ${Math.max(0, battleState.currentEnemy.health)} / ${battleState.currentEnemy.maxHealth}`;
