@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;0,800&display=swap');
+
 :root {
   --ink: #222;
   --paper: #ffffff;
@@ -24,7 +26,7 @@ body {
   background: #ffffff;
   padding: 30px;
   color: #000000;
-  font-family: Arial, sans-serif;
+  font-family: 'Google Sans', Arial, sans-serif;
 }
 
 .wireframe {
@@ -41,9 +43,9 @@ body {
 }
 
 .character-name {
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 700;
-  text-decoration: underline;
+  text-decoration: none;
   margin-bottom: 8px;
 }
 
@@ -81,7 +83,7 @@ body {
 .character-box {
   width: 180px;
   height: 180px;
-  border: 2px dashed #777;
+  border: 2px solid #777;
   margin: 0 auto 14px;
   display: flex;
   align-items: center;
@@ -89,6 +91,11 @@ body {
   background: var(--panel);
 }
 
+#petAvatar {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* Keeps the potato from stretching distorting */
+}
 
 /* Add Goal Button Styling */
 .add-goal-container {
@@ -162,16 +169,7 @@ body {
   justify-content: flex-end;
   gap: 10px;
 }
-.stick-character {
-  font-size: 42px;
-  line-height: 1;
-}
 
-.pet-mood {
-  font-size: 15px;
-  margin-bottom: 24px;
-  color: var(--muted);
-}
 
 .stat-bars {
   display: grid;
@@ -251,35 +249,36 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
+  background: var(--paper);
+  color: var(--ink);
 }
-
-.tab:nth-child(1) {
-  background: var(--color-coral);
-}
-
-.tab:nth-child(2) {
-  background: var(--color-teal);
-}
-
-.tab:nth-child(3) {
-  background: var(--color-red);
-}
-
-.tab:nth-child(4) {
-  background: var(--color-lime);
-}
-
-.tab:nth-child(5) {
-  background: var(--color-dark-purple);
-}
-
 
 .tab:last-child {
   border-right: none;
 }
 
 .tab.active {
-  background: var(--paper);
+  color: #fff;
+}
+
+.tab.active[data-tab="physical"] {
+  background: var(--color-coral);
+}
+
+.tab.active[data-tab="mental"] {
+  background: var(--color-teal);
+}
+
+.tab.active[data-tab="social"] {
+  background: var(--color-red);
+}
+
+.tab.active[data-tab="intellectual"] {
+  background: var(--color-lime);
+}
+
+.tab.active[data-tab="spiritual"] {
+  background: var(--color-dark-purple);
 }
 
 .tab:focus-visible {
@@ -584,6 +583,50 @@ body {
   background: var(--paper);
 }
 
+.mini-games-ideas {
+  padding: 10px 30px 30px;
+  border-top: 2px solid var(--line);
+  background: var(--paper);
+}
+
+.mini-games-ideas h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.mini-games-ideas > p {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.mini-games-ideas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.mini-game-idea-card {
+  border: 2px dashed var(--line);
+  background: var(--panel);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.mini-game-idea-card h3 {
+  font-size: 18px;
+}
+
+.mini-game-idea-card p {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.idea-impact {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .reflex-intro {
   padding: 20px 30px;
   border-bottom: 2px solid var(--line);
@@ -791,8 +834,6 @@ body {
   text-align: center;
 }
 
-<<<<<<< Updated upstream
-=======
 .kitchen-intro {
   padding: 20px 30px;
   border-bottom: 2px solid var(--line);
@@ -1088,8 +1129,6 @@ body {
   padding: 0 30px 24px;
   color: var(--muted);
 }
-
->>>>>>> Stashed changes
 .battle-header h1 {
   font-size: 28px;
   margin: 0;
@@ -1340,6 +1379,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .mini-games-ideas {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .mini-games-ideas-grid {
+    grid-template-columns: 1fr;
+  }
+
   .reflex-hud,
   .reflex-controls {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -1349,16 +1397,12 @@ body {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
-<<<<<<< Updated upstream
-=======
   .kitchen-hud,
   .kitchen-controls,
   .bath-hud,
   .bath-controls {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
-
->>>>>>> Stashed changes
   .focus-controls {
     grid-template-columns: 1fr;
   }
@@ -1371,8 +1415,6 @@ body {
   .reflex-help,
   .reflex-hud,
   .reflex-intro,
-<<<<<<< Updated upstream
-=======
   .kitchen-intro,
   .kitchen-hud,
   .kitchen-controls,
@@ -1381,7 +1423,6 @@ body {
   .bath-hud,
   .bath-controls,
   .bath-help,
->>>>>>> Stashed changes
   .focus-hud,
   .focus-help,
   .focus-controls,
@@ -1394,8 +1435,6 @@ body {
     padding: 16px 18px 10px;
   }
 
-<<<<<<< Updated upstream
-=======
   .kitchen-game-area {
     padding: 16px 18px 10px;
   }
@@ -1403,8 +1442,6 @@ body {
   .bath-game-area {
     padding: 16px 18px 10px;
   }
-
->>>>>>> Stashed changes
   .tab {
     border-right: none;
     border-bottom: 2px solid var(--line);

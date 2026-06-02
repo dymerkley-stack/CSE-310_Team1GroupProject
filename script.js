@@ -1,8 +1,13 @@
-import { loadLatestState, saveGameState } from "./database.js";
+import {
+  loadLatestState,
+  saveGameState,
+  saveToCloud,
+  getPlayerId,
+} from "./database.js";
 
 async function testDatabase() {
   // TEST SAVE
-  await saveGameState(currentState);
+  await saveGameState(state);
 
   // TEST LOAD
   const pets = await loadLatestState();
@@ -10,14 +15,12 @@ async function testDatabase() {
   console.log("DATABASE RESPONSE:", pets);
 }
 
-testDatabase();
-
 const initialState = {
-  physical: 70,
-  mental: 70,
-  social: 70,
-  intellectual: 70,
-  spiritual: 70,
+  physical: 50,
+  mental: 50,
+  social: 50,
+  intellectual: 50,
+  spiritual: 50,
   checkins: 0,
   level: 1,
   exp: 0,
@@ -25,6 +28,23 @@ const initialState = {
 };
 
 const state = { ...initialState };
+
+async function syncCloudSave() {
+  const cloudData = await loadLatestState();
+
+  if (cloudData) {
+    Object.keys(cloudData).forEach((key) => {
+      if (key in state && cloudData[key] !== null) {
+        state[key] = cloudData[key];
+      }
+    });
+  }
+}
+async function initializeGame() {
+  await syncCloudSave();
+  console.log("Cloud save loaded:", state);
+}
+
 const wellnessKeys = [
   "physical",
   "mental",
@@ -56,6 +76,13 @@ const DEFAULT_CATEGORY_POINTS = {
   intellectual: 20,
   spiritual: 18,
 };
+initializeGame();
+testDatabase();
+console.log("Before:", state.physical);
+
+state.physical = 20;
+
+console.log("After:", state.physical);
 
 const taskPools = {
   physical: [
@@ -423,7 +450,7 @@ function currentLevel() {
   return state.level;
 }
 
-function saveProgress() {
+async function saveProgress() {
   localStorage.setItem(
     WELLNESS_PROGRESS_KEY,
     JSON.stringify({
@@ -433,6 +460,8 @@ function saveProgress() {
     }),
   );
   saveWellnessState();
+  const playerId = await getPlayerId();
+  await saveToCloud(state, playerId);
 }
 
 function saveWellnessState() {
@@ -848,13 +877,6 @@ function moodText(avg) {
   return "Your pet feels neglected. Do a wellness action now.";
 }
 
-function avatarFace(avg) {
-  if (state.gameOver) return "(x_x)";
-  if (avg >= 80) return "(^o^)/";
-  if (avg >= 60) return "(o^.^o)";
-  if (avg >= 40) return "(._.)";
-  return "(;_; )";
-}
 
 function render() {
   Object.keys(bars).forEach((key) => {
@@ -863,9 +885,7 @@ function render() {
     labels[key].textContent = String(Math.round(value));
   });
 
-  const avg = averageWellness();
-  petMood.textContent = moodText(avg);
-  petAvatar.textContent = avatarFace(avg);
+  
   if (levelText) {
     levelText.textContent = `Level ${currentLevel()}`;
   }
@@ -883,22 +903,6 @@ function render() {
   actionButtons.forEach((button) => {
     button.disabled = state.gameOver;
   });
-}
-
-function gameTick() {
-  if (state.gameOver) return;
-
-  state.physical = clamp(state.physical - 0.2);
-  state.mental = clamp(state.mental - 0.16);
-  state.social = clamp(state.social - 0.18);
-  state.intellectual = clamp(state.intellectual - 0.17);
-  state.spiritual = clamp(state.spiritual - 0.13);
-
-  if (wellnessKeys.some((key) => state[key] === 0)) {
-    state.gameOver = true;
-  }
-
-  render();
 }
 
 function applyAction(action) {
@@ -1037,4 +1041,3 @@ loadDailyTasks();
 renderTaskList();
 renderTabs();
 render();
-setInterval(gameTick, 12000);
