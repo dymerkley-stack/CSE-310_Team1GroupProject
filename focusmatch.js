@@ -12,6 +12,16 @@ const claimRewardBtn = document.getElementById("claimFocusRewardBtn");
 const BEST_SCORE_KEY = "focusMatchBestScore";
 const WELLNESS_STATE_KEY = "wellnessState";
 
+// Optional sprite paths. Leave empty strings to keep fallback placeholders.
+const SPRITE_ASSETS = {
+  cells: {
+    idle: "",
+    active: "",
+    correct: "",
+    wrong: "",
+  },
+};
+
 let score = 0;
 let bestScore = 0;
 let round = 1;
@@ -22,6 +32,7 @@ let rewardPending = 0;
 let running = false;
 let acceptingInput = false;
 let runToken = 0;
+const spriteLoadCache = new Map();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -31,6 +42,66 @@ function sleep(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function loadSprite(path) {
+  if (!path) {
+    return Promise.resolve(false);
+  }
+
+  const cached = spriteLoadCache.get(path);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = path;
+  });
+
+  spriteLoadCache.set(path, promise);
+  return promise;
+}
+
+function enableSprite(element, path) {
+  element.classList.add("focus-uses-sprite");
+  element.style.backgroundImage = `url("${path}")`;
+}
+
+function disableSprite(element) {
+  element.classList.remove("focus-uses-sprite");
+  element.style.backgroundImage = "";
+}
+
+function applySpriteIfAvailable(element, path) {
+  if (!path) {
+    disableSprite(element);
+    return;
+  }
+
+  element.dataset.spritePath = path;
+
+  loadSprite(path).then((loaded) => {
+    if (!element.isConnected || element.dataset.spritePath !== path) {
+      return;
+    }
+
+    if (loaded) {
+      enableSprite(element, path);
+    } else {
+      disableSprite(element);
+    }
+  });
+}
+
+function getCellSpritePathForState(state) {
+  return SPRITE_ASSETS.cells[state] ?? "";
+}
+
+function applyCellSpriteState(cell, state) {
+  applySpriteIfAvailable(cell, getCellSpritePathForState(state));
 }
 
 function setStatus(message) {
@@ -84,9 +155,19 @@ function flashCell(index, className, duration = 260) {
   const cell = cells[index];
   if (!cell) return;
 
+  let state = "active";
+  if (className === "focus-cell--correct") {
+    state = "correct";
+  } else if (className === "focus-cell--wrong") {
+    state = "wrong";
+  }
+
   cell.classList.add(className);
+  applyCellSpriteState(cell, state);
+
   window.setTimeout(() => {
     cell.classList.remove(className);
+    applyCellSpriteState(cell, "idle");
   }, duration);
 }
 
@@ -307,6 +388,11 @@ function init() {
   updateHud();
   setBoardInteractive(false);
   setStatus("Ready");
+
+  for (let i = 0; i < cells.length; i += 1) {
+    applyCellSpriteState(cells[i], "idle");
+  }
+
   bindEvents();
 }
 

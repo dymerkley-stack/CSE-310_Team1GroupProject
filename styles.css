@@ -690,6 +690,9 @@ body {
   position: absolute;
   width: 32px;
   height: 32px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 .reflex-player {
@@ -709,6 +712,12 @@ body {
 .reflex-obstacle--double {
   background: #1e1e1e;
   border-color: #000;
+}
+
+.reflex-player.reflex-uses-sprite,
+.reflex-obstacle.reflex-uses-sprite {
+  border: none;
+  background-color: transparent;
 }
 
 .reflex-track.reflex-hit {
@@ -778,6 +787,9 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 .focus-cell:disabled {
@@ -798,6 +810,10 @@ body {
 
 .focus-cell--wrong {
   background: #ff6b6b;
+}
+
+.focus-cell.focus-uses-sprite {
+  background-color: transparent;
 }
 
 .focus-board--locked .focus-cell {
@@ -944,6 +960,23 @@ body {
   font-size: 48px;
   display: block;
   margin-bottom: 8px;
+}
+
+#playerPetAvatar,
+#enemyAvatar {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.battle-avatar-uses-sprite {
+  color: transparent;
 }
 
 .level-text {
