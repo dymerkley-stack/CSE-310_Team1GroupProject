@@ -432,8 +432,12 @@ const customGoalLabel = document.getElementById("customGoalLabel");
 const customGoalInput = document.getElementById("customGoalInput");
 const customGoalSubmit = document.getElementById("customGoalSubmit");
 const customGoalHint = document.getElementById("customGoalHint");
+const recommendationText = document.getElementById("recommendationText");
+const recommendationButton = document.getElementById("recommendationButton");
+const useRecommendationButton = document.getElementById("useRecommendationButton");
 
 let activeCategory = "physical";
+let currentRecommendation = "";
 let isCustomGoalPanelOpen = false;
 
 function clamp(value, min = 0, max = 100) {
@@ -809,6 +813,41 @@ function hasCustomGoalForCategory(category) {
   );
 }
 
+function getGoalRecommendation(category) {
+  const pool = taskPools[category] ?? [];
+  const existingTitles = new Set(
+    dailyTasks
+      .filter((task) => task.category === category)
+      .map((task) => task.title),
+  );
+
+  const candidate = shuffleCopy(pool).find(
+    (task) => !existingTitles.has(task.title),
+  );
+
+  if (candidate) {
+    return candidate.title;
+  }
+
+  const fallback = shuffleCopy(pool).find((task) => task.title);
+  return (
+    fallback?.title || `Add one extra ${category} goal for today.`
+  );
+}
+
+function updateRecommendation() {
+  if (!recommendationText || !recommendationButton || !useRecommendationButton) {
+    return;
+  }
+
+  currentRecommendation = getGoalRecommendation(activeCategory);
+  recommendationText.textContent = currentRecommendation
+    ? `Try this: ${currentRecommendation}`
+    : `No new recommendation available for ${activeCategory} right now.`;
+  recommendationButton.disabled = false;
+  useRecommendationButton.disabled = !currentRecommendation;
+}
+
 function syncCustomGoalForm() {
   if (
     !customGoalForm ||
@@ -841,8 +880,20 @@ function syncCustomGoalForm() {
 
   if (limitReached) {
     customGoalHint.textContent = `You already added your one extra ${categoryTitle} goal for today.`;
+    if (recommendationText) {
+      recommendationText.textContent = `Goal recommendations are disabled once this category has its extra goal.`;
+    }
+    if (recommendationButton) {
+      recommendationButton.disabled = true;
+    }
+    if (useRecommendationButton) {
+      useRecommendationButton.disabled = true;
+    }
   } else {
     customGoalHint.textContent = `Add one extra ${categoryTitle} goal for today.`;
+    if (isCustomGoalPanelOpen) {
+      updateRecommendation();
+    }
   }
 }
 
@@ -878,6 +929,27 @@ function moodText(avg) {
 }
 
 
+const avatarLevelMap = [
+  { minLevel: 1, src: "Avatar/Default.png", alt: "The Spud Bud" },
+  { minLevel: 5, src: "Avatar/Sprout.png", alt: "The Spud Sprout" },
+  { minLevel: 10, src: "Avatar/Farmer.png", alt: "The Spud Farmer" },
+  { minLevel: 15, src: "Avatar/Gym.png", alt: "The Gym Spud" },
+  { minLevel: 20, src: "Avatar/Sleepwear.png", alt: "The Sleepy Spud" },
+  { minLevel: 25, src: "Avatar/Old_Money.png", alt: "The Loaded Spud" },
+];
+
+function updatePetAvatar() {
+  if (!petAvatar) return;
+
+  const currentAvatar = avatarLevelMap
+    .filter((item) => state.level >= item.minLevel)
+    .pop() || avatarLevelMap[0];
+
+  petAvatar.src = currentAvatar.src;
+  petAvatar.alt = currentAvatar.alt;
+  petAvatar.setAttribute("aria-label", currentAvatar.alt);
+}
+
 function render() {
   Object.keys(bars).forEach((key) => {
     const value = clamp(state[key]);
@@ -885,7 +957,6 @@ function render() {
     labels[key].textContent = String(Math.round(value));
   });
 
-  
   if (levelText) {
     levelText.textContent = `Level ${currentLevel()}`;
   }
@@ -898,6 +969,8 @@ function render() {
     const expRequired = expRequiredForLevel(state.level);
     expText.textContent = `${state.exp} / ${expRequired} EXP`;
   }
+
+  updatePetAvatar();
 
   const actionButtons = Array.from(document.querySelectorAll("[data-action]"));
   actionButtons.forEach((button) => {
@@ -1015,6 +1088,28 @@ if (customGoalToggle) {
     if (customGoalToggle.disabled) return;
     isCustomGoalPanelOpen = !isCustomGoalPanelOpen;
     syncCustomGoalForm();
+  });
+}
+
+if (recommendationButton) {
+  recommendationButton.addEventListener("click", () => {
+    if (recommendationButton.disabled) return;
+    updateRecommendation();
+  });
+}
+
+if (useRecommendationButton) {
+  useRecommendationButton.addEventListener("click", () => {
+    if (
+      !useRecommendationButton ||
+      useRecommendationButton.disabled ||
+      !currentRecommendation ||
+      !(customGoalInput instanceof HTMLInputElement)
+    ) {
+      return;
+    }
+    customGoalInput.value = currentRecommendation;
+    customGoalInput.focus();
   });
 }
 

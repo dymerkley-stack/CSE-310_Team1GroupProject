@@ -99,6 +99,14 @@ body {
   object-position: top center;
 }
 
+.pet-mood {
+  padding: 8px 0;
+  margin: 16px auto 24px;
+  font-size: 25px;
+  color: #333;
+  line-height: 1.6;
+}
+
 /* Add Goal Button Styling */
 .add-goal-container {
   margin-bottom: 20px;
@@ -472,6 +480,25 @@ body {
 .custom-goal-hint {
   margin-bottom: 10px;
   color: var(--muted);
+}
+
+.recommendation-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.recommendation-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.recommendation-row button {
+  white-space: nowrap;
 }
 
 .add-goal-row {

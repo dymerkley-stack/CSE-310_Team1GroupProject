@@ -1,14 +1,31 @@
 import { loadLatestState } from "./database.js";
 
 const DESIGN_CARDS_SELECTOR = ".character-design-card[data-level]";
+const LOCAL_PROGRESS_KEY = "wellnessProgress";
+
+function loadLocalProgressLevel() {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROGRESS_KEY);
+    if (!raw) return 1;
+
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.level === "number" && parsed.level >= 1) {
+      return Math.max(1, Math.floor(parsed.level));
+    }
+  } catch (error) {
+    console.error("Unable to read local progress level:", error);
+  }
+
+  return 1;
+}
 
 async function initializeGalleryUnlocks() {
-  let currentLevel = 1;
+  let currentLevel = loadLocalProgressLevel();
 
   try {
     const savedState = await loadLatestState();
     if (savedState && typeof savedState.level === "number") {
-      currentLevel = savedState.level;
+      currentLevel = Math.max(currentLevel, Math.floor(savedState.level));
     }
   } catch (error) {
     console.error("Unable to load player level:", error);
