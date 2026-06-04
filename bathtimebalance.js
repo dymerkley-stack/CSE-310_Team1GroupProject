@@ -8,7 +8,6 @@ const sponge = document.getElementById("bathSponge");
 
 const scoreText = document.getElementById("bathScore");
 const bestText = document.getElementById("bathBest");
-const calmText = document.getElementById("bathCalm");
 const timeText = document.getElementById("bathTime");
 const tempText = document.getElementById("bathTemp");
 const statusText = document.getElementById("bathStatus");
@@ -33,7 +32,7 @@ const TEMP_MIN = 0;
 const TEMP_MAX = 100;
 const COMFORT_MIN = 42;
 const COMFORT_MAX = 58;
-const MAX_SPOTS = 7;
+const MAX_SPOTS = 5;
 const SPOT_SIZE = 36;
 const SPOT_SCRUB_REQUIRED_SECONDS = 0.45;
 const SPOT_PROGRESS_VISIBLE_SECONDS = 0.4;
@@ -41,10 +40,11 @@ const SPONGE_WIDTH = 62;
 const SPONGE_HEIGHT = 40;
 const SPONGE_TOP_LIMIT = 72;
 const BASE_SPAWN_INTERVAL = 1.35;
+const TEMP_EDGE_WARNING_PADDING = 10;
+const TEMP_WARNING_FLASH_DURATION = 220;
 
 let score = 0;
 let bestScore = 0;
-let calm = 3;
 let timeLeft = RUN_DURATION_SECONDS;
 let rewardPending = 0;
 let temperature = 50;
@@ -52,7 +52,6 @@ let spots = [];
 let running = false;
 let spawnTimer = 0;
 let spawnInterval = BASE_SPAWN_INTERVAL;
-let stressTimer = 0;
 let driftTimer = 0;
 let driftRate = 0;
 let elapsedSeconds = 0;
@@ -61,6 +60,7 @@ let loopHandle = null;
 let spongeX = 0;
 let spongeY = 0;
 let spongeScrubbing = false;
+let tempWarningTimer = 0;
 
 const spriteLoadCache = new Map();
 
@@ -140,10 +140,30 @@ function updateNeedle() {
 function updateHud() {
   scoreText.textContent = String(score);
   bestText.textContent = String(bestScore);
-  calmText.textContent = String(calm);
   timeText.textContent = String(Math.max(0, Math.ceil(timeLeft)));
   tempText.textContent = String(Math.round(temperature));
   updateNeedle();
+}
+
+function updateTemperatureWarning() {
+  const nearColdEdge = temperature <= TEMP_MIN + TEMP_EDGE_WARNING_PADDING;
+  const nearHotEdge = temperature >= TEMP_MAX - TEMP_EDGE_WARNING_PADDING;
+
+  if (nearColdEdge || nearHotEdge) {
+    tempWarningTimer = TEMP_WARNING_FLASH_DURATION;
+    arena.classList.toggle("bath-arena--danger", true);
+    arena.classList.toggle("bath-arena--danger-cold", nearColdEdge);
+    arena.classList.toggle("bath-arena--danger-hot", nearHotEdge);
+    return;
+  }
+
+  if (tempWarningTimer > 0) {
+    tempWarningTimer -= 16;
+    arena.classList.toggle("bath-arena--danger", true);
+    return;
+  }
+
+  arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
 }
 
 function loadBestScore() {
@@ -319,22 +339,32 @@ function cleanSpot(spotData) {
     setStatus("Great clean! Temperature is comfortable.");
   } else {
     score = Math.max(0, score + 3);
-    calm -= 1;
-    setStatus("Spot cleaned, but the water temperature upset your pet.");
+    setStatus("Spot cleaned, but the water temperature needs a little work.");
   }
 
   removeSpot(spotData);
   updateHud();
-
-  if (calm <= 0) {
-    endRun("Bath ended early.");
-  }
 }
 
 function getSpawnInterval() {
-  const min = Math.max(0.45, BASE_SPAWN_INTERVAL - elapsedSeconds * 0.008);
-  const max = Math.max(min + 0.15, BASE_SPAWN_INTERVAL + 0.28 - elapsedSeconds * 0.006);
+  const progress = clamp(elapsedSeconds / RUN_DURATION_SECONDS, 0, 1);
+  const min = Math.max(0.25, BASE_SPAWN_INTERVAL - progress * 0.8);
+  const max = Math.max(min + 0.12, BASE_SPAWN_INTERVAL + 0.32 - progress * 0.95);
   return randomBetween(min, max);
+}
+
+function getSpawnBatchCount() {
+  const progress = clamp(elapsedSeconds / RUN_DURATION_SECONDS, 0, 1);
+
+  if (progress < 0.35) {
+    return 1;
+  }
+
+  if (progress < 0.7) {
+    return Math.random() < 0.3 ? 2 : 1;
+  }
+
+  return Math.random() < 0.7 ? 2 : 1;
 }
 
 function adjustTemperature(delta) {
@@ -344,6 +374,15 @@ function adjustTemperature(delta) {
 
   temperature = clamp(temperature + delta, TEMP_MIN, TEMP_MAX);
   updateHud();
+  updateTemperatureWarning();
+
+  if (temperature <= TEMP_MIN) {
+    endRun("Water got too cold.");
+  }
+
+  if (temperature >= TEMP_MAX) {
+    endRun("Water got too hot.");
+  }
 }
 
 function coolWater() {
@@ -405,6 +444,21 @@ function step(timestamp) {
   }
 
   temperature = clamp(temperature + driftRate * dt * 4, TEMP_MIN, TEMP_MAX);
+  updateTemperatureWarning();
+
+  if (temperature <= TEMP_MIN) {
+    updateHud();
+    arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
+    endRun("Water got too cold.");
+    return;
+  }
+
+  if (temperature >= TEMP_MAX) {
+    updateHud();
+    arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
+    endRun("Water got too hot.");
+    return;
+  }
 
   tickSpotProgressVisibility(dt);
 
@@ -412,28 +466,21 @@ function step(timestamp) {
   if (spawnTimer >= spawnInterval) {
     spawnTimer = 0;
     spawnInterval = getSpawnInterval();
-    if (spots.length < MAX_SPOTS) {
+    const batchCount = getSpawnBatchCount();
+    for (let i = 0; i < batchCount; i += 1) {
+      if (spots.length >= MAX_SPOTS) {
+        break;
+      }
       createSpot();
     }
   }
 
   scrubSpots(dt);
 
-  if (!isComfortTemperature()) {
-    stressTimer += dt;
-    if (stressTimer >= 3.1) {
-      stressTimer = 0;
-      calm -= 1;
-      setStatus("Water stayed uncomfortable for too long.");
-    }
-  } else {
-    stressTimer = Math.max(0, stressTimer - dt * 1.5);
-  }
-
   updateHud();
 
-  if (calm <= 0) {
-    endRun("Bath ended early.");
+  if (spots.length >= MAX_SPOTS) {
+    endRun("Too many dirty spots built up.");
     return;
   }
 
@@ -450,23 +497,23 @@ function startRun() {
   resetSponge();
 
   score = 0;
-  calm = 3;
   timeLeft = RUN_DURATION_SECONDS;
   temperature = 50;
   rewardPending = Math.max(0, rewardPending);
   spawnTimer = 0;
   spawnInterval = getSpawnInterval();
-  stressTimer = 0;
   driftTimer = 0;
   driftRate = randomBetween(-1.5, 1.5);
   elapsedSeconds = 0;
   lastFrame = 0;
+  tempWarningTimer = 0;
   running = true;
 
   claimRewardBtn.disabled = rewardPending <= 0;
   startBtn.textContent = "Restart Bath";
 
   updateHud();
+  updateTemperatureWarning();
   setStatus("Bath Time Balance running.");
 
   if (loopHandle) {

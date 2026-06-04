@@ -1152,6 +1152,18 @@ body {
   touch-action: none;
 }
 
+.bath-arena--danger {
+  animation: bathDangerPulse 220ms ease-in-out infinite alternate;
+}
+
+.bath-arena--danger-cold {
+  box-shadow: inset 0 0 0 4px rgba(77, 150, 255, 0.55);
+}
+
+.bath-arena--danger-hot {
+  box-shadow: inset 0 0 0 4px rgba(255, 107, 107, 0.55);
+}
+
 .bath-temp-meter {
   position: absolute;
   top: 14px;
@@ -1215,6 +1227,15 @@ body {
 .bath-spots-layer {
   position: absolute;
   inset: 0;
+}
+
+@keyframes bathDangerPulse {
+  from {
+    filter: saturate(1);
+  }
+  to {
+    filter: saturate(1.15) brightness(1.03);
+  }
 }
 
 .bath-sponge {
