@@ -4,6 +4,7 @@ import {
   saveToCloud,
   getPlayerId,
 } from "./database.js";
+import { getSelectedAvatarForLevel } from "./avatar-selection.js";
 
 async function testDatabase() {
   // TEST SAVE
@@ -933,23 +934,10 @@ function moodText(avg) {
   if (avg >= 40) return "Your pet is getting worried. Time for a check-in.";
   return "Your pet feels neglected. Do a wellness action now.";
 }
-
-
-const avatarLevelMap = [
-  { minLevel: 1, src: "Avatar/Default.png", alt: "The Spud Bud" },
-  { minLevel: 5, src: "Avatar/Sprout.png", alt: "The Spud Sprout" },
-  { minLevel: 10, src: "Avatar/Farmer.png", alt: "The Spud Farmer" },
-  { minLevel: 15, src: "Avatar/Gym.png", alt: "The Gym Spud" },
-  { minLevel: 20, src: "Avatar/Sleepwear.png", alt: "The Sleepy Spud" },
-  { minLevel: 25, src: "Avatar/Old_Money.png", alt: "The Loaded Spud" },
-];
-
 function updatePetAvatar() {
   if (!petAvatar) return;
 
-  const currentAvatar = avatarLevelMap
-    .filter((item) => state.level >= item.minLevel)
-    .pop() || avatarLevelMap[0];
+  const currentAvatar = getSelectedAvatarForLevel(state.level);
 
   petAvatar.src = currentAvatar.src;
   petAvatar.alt = currentAvatar.alt;

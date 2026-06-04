@@ -11,7 +11,7 @@
       <section class="mini-games-header reflex-header">
         <a href="minigames.html" class="nav-link">← Back to Mini Games</a>
         <h1>Reflex Dash</h1>
-        <a href="battle.html" class="nav-link">Arena Battles →</a>
+        <a href="index.html" class="nav-link">Home →</a>
       </section>
 
       <section class="reflex-intro">
@@ -33,7 +33,9 @@
           <div class="reflex-lane-mark lane-1"></div>
           <div class="reflex-lane-mark lane-2"></div>
           <div class="reflex-lane-mark lane-3"></div>
-          <div id="reflexPlayer" class="reflex-player" aria-hidden="true"></div>
+          <div id="reflexPlayer" class="reflex-player" aria-hidden="true">
+            <img id="reflexPlayerSprite" class="reflex-player-sprite" alt="" hidden />
+          </div>
         </div>
       </section>
 
@@ -49,6 +51,6 @@
       </section>
     </main>
 
-    <script src="reflexdash.js"></script>
+    <script type="module" src="reflexdash.js"></script>
   </body>
 </html>

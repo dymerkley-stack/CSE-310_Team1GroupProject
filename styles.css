@@ -735,6 +735,23 @@ body {
   text-align: center;
 }
 
+.character-design-card:not(.locked) {
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.character-design-card:not(.locked):hover,
+.character-design-card:not(.locked):focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-teal);
+}
+
+.character-design-card--selected {
+  border-color: var(--color-coral);
+  box-shadow: 0 0 0 3px rgba(244, 96, 54, 0.18);
+}
+
 .character-design-card:not(.locked) > img {
   width: 100%;
   max-height: 300px;
@@ -850,21 +867,34 @@ body {
 .reflex-player,
 .reflex-obstacle {
   position: absolute;
-  width: 32px;
-  height: 32px;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
 
 .reflex-player {
+  width: 56px;
+  height: 76px;
   background: var(--color-coral);
   border: 2px solid var(--line);
   z-index: 3;
-  border-radius: 6px;
+  border-radius: 10px;
+  background-position: center bottom;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.reflex-player-sprite {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  pointer-events: none;
 }
 
 .reflex-obstacle {
+  width: 32px;
+  height: 32px;
   background: #333;
   border: 2px solid #111;
   border-radius: 4px;
@@ -876,7 +906,11 @@ body {
   border-color: #000;
 }
 
-.reflex-player.reflex-uses-sprite,
+.reflex-player.reflex-uses-sprite {
+  background-color: transparent;
+  border: 2px solid rgba(34, 34, 34, 0.28);
+}
+
 .reflex-obstacle.reflex-uses-sprite {
   border: none;
   background-color: transparent;
@@ -943,15 +977,14 @@ body {
 }
 
 .focus-cell {
+  position: relative;
   aspect-ratio: 1 / 1;
   border: 2px solid var(--line);
-  background: #efefef;
+  background: radial-gradient(circle at center, #f7f7f7 0 36%, #dedede 37% 58%, #c9c9c9 59% 100%);
   border-radius: 8px;
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  overflow: hidden;
 }
 
 .focus-cell:disabled {
@@ -963,19 +996,37 @@ body {
 }
 
 .focus-cell--active {
-  background: #4d96ff;
+  background: radial-gradient(circle at center, #dff1ff 0 35%, #bbdbff 36% 57%, #7fb8ff 58% 100%);
 }
 
 .focus-cell--correct {
-  background: #6bcB77;
+  background: radial-gradient(circle at center, #e7f9ea 0 35%, #c9f0cf 36% 57%, #7fcf8d 58% 100%);
 }
 
 .focus-cell--wrong {
-  background: #ff6b6b;
+  background: radial-gradient(circle at center, #ffe8e8 0 35%, #ffc9c9 36% 57%, #ff8b8b 58% 100%);
 }
 
-.focus-cell.focus-uses-sprite {
-  background-color: transparent;
+.focus-cell-pet {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: 82%;
+  height: 82%;
+  transform: translate(-50%, 14%) scale(0.25);
+  transform-origin: center bottom;
+  opacity: 0;
+  transition: transform 150ms ease, opacity 150ms ease;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.18));
+}
+
+.focus-cell--active .focus-cell-pet,
+.focus-cell--correct .focus-cell-pet,
+.focus-cell--wrong .focus-cell-pet {
+  opacity: 1;
+  transform: translate(-50%, -10%) scale(1);
 }
 
 .focus-board--locked .focus-cell {
@@ -1036,8 +1087,8 @@ body {
 
 .kitchen-catcher {
   position: absolute;
-  width: 88px;
-  height: 20px;
+  width: 176px;
+  height: 40px;
   border: 2px solid var(--line);
   border-radius: 8px;
   background: #f6d55c;
@@ -1123,6 +1174,18 @@ body {
   touch-action: none;
 }
 
+.bath-arena--danger {
+  animation: bathDangerPulse 220ms ease-in-out infinite alternate;
+}
+
+.bath-arena--danger-cold {
+  box-shadow: inset 0 0 0 4px rgba(77, 150, 255, 0.55);
+}
+
+.bath-arena--danger-hot {
+  box-shadow: inset 0 0 0 4px rgba(255, 107, 107, 0.55);
+}
+
 .bath-temp-meter {
   position: absolute;
   top: 14px;
@@ -1186,6 +1249,15 @@ body {
 .bath-spots-layer {
   position: absolute;
   inset: 0;
+}
+
+@keyframes bathDangerPulse {
+  from {
+    filter: saturate(1);
+  }
+  to {
+    filter: saturate(1.15) brightness(1.03);
+  }
 }
 
 .bath-sponge {

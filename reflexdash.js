@@ -1,5 +1,8 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const track = document.getElementById("reflexTrack");
 const player = document.getElementById("reflexPlayer");
+const playerSprite = document.getElementById("reflexPlayerSprite");
 const scoreText = document.getElementById("reflexScore");
 const bestText = document.getElementById("reflexBest");
 const livesText = document.getElementById("reflexLives");
@@ -20,8 +23,9 @@ const SPRITE_ASSETS = {
   obstacleDouble: "",
 };
 
-const PLAYER_X = 90;
-const PLAYER_SIZE = 32;
+const PLAYER_X = 72;
+const PLAYER_WIDTH = 56;
+const PLAYER_HEIGHT = 76;
 const OBSTACLE_SIZE = 30;
 const DOUBLE_LANE_SPAWN_CHANCE = 0.08;
 const DOUBLE_SPAWN_CHANCE = 0.12;
@@ -73,7 +77,7 @@ function updateHud() {
 
 function movePlayerToLane(laneIndex) {
   playerLane = clamp(laneIndex, 0, laneHeights.length - 1);
-  const y = laneHeights[playerLane] - PLAYER_SIZE / 2;
+  const y = laneHeights[playerLane] - PLAYER_HEIGHT / 2;
   player.style.transform = `translate(${PLAYER_X}px, ${y}px)`;
 }
 
@@ -123,12 +127,22 @@ function loadSprite(path) {
 
 function enableSprite(element, path) {
   element.classList.add("reflex-uses-sprite");
-  element.style.backgroundImage = `url("${path}")`;
+  if (playerSprite && element === player) {
+    playerSprite.src = path;
+    playerSprite.hidden = false;
+  } else {
+    element.style.backgroundImage = `url("${path}")`;
+  }
 }
 
 function disableSprite(element) {
   element.classList.remove("reflex-uses-sprite");
-  element.style.backgroundImage = "";
+  if (playerSprite && element === player) {
+    playerSprite.hidden = true;
+    playerSprite.removeAttribute("src");
+  } else {
+    element.style.backgroundImage = "";
+  }
 }
 
 function applySpriteIfAvailable(element, path) {
@@ -224,7 +238,7 @@ function checkCollision(obstacle) {
   if (!obstacle.lanes.includes(playerLane)) return false;
 
   const playerLeft = PLAYER_X;
-  const playerRight = PLAYER_X + PLAYER_SIZE;
+  const playerRight = PLAYER_X + PLAYER_WIDTH;
   const obstacleLeft = obstacle.x;
   const obstacleRight = obstacle.x + obstacle.width;
 
@@ -263,7 +277,8 @@ function getSpawnIntervalForTime(seconds) {
 
 function getRewardPoints(currentScore) {
   const scoreReward = Math.floor(currentScore / 40);
-  return clamp(scoreReward, 1, 12);
+  const boostedReward = Math.round(scoreReward * 1.2);
+  return clamp(boostedReward, 1, 14);
 }
 
 function endRun() {
@@ -454,7 +469,7 @@ function init() {
   loadBestScore();
   computeLaneHeights();
   movePlayerToLane(1);
-  applySpriteIfAvailable(player, SPRITE_ASSETS.player);
+  applySpriteIfAvailable(player, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.player);
   updateHud();
   bindEvents();
 

@@ -1,3 +1,5 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const field = document.getElementById("kitchenField");
 const catcher = document.getElementById("kitchenCatcher");
 
@@ -31,7 +33,7 @@ const ITEM_TYPES = [
     spawnWeight: 72,
     catchScoreDelta: 10,
     catchLifeDelta: 0,
-    missLifeDelta: -1,
+    missLifeDelta: 0,
     catchStatus: "Healthy catch! Keep it up.",
     missStatus: "Healthy food missed. Kitchen routine slipped.",
   },
@@ -48,17 +50,17 @@ const ITEM_TYPES = [
 ];
 
 const RUN_DURATION_SECONDS = 60;
-const CATCHER_WIDTH = 88;
-const CATCHER_HEIGHT = 20;
+const CATCHER_WIDTH = 176;
+const CATCHER_HEIGHT = 40;
 const CATCHER_Y_OFFSET = 18;
 const ITEM_SIZE = 26;
 const MOVE_STEP = 30;
 const BASE_FALL_SPEED = 105;
 const FALL_SPEED_RAMP = 5;
-const SPAWN_START_MIN = 0.45;
-const SPAWN_START_MAX = 0.9;
-const SPAWN_END_MIN = 0.22;
-const SPAWN_END_MAX = 0.45;
+const SPAWN_START_MIN = 0.38;
+const SPAWN_START_MAX = 0.76;
+const SPAWN_END_MIN = 0.16;
+const SPAWN_END_MAX = 0.34;
 const SPAWN_RAMP_SECONDS = 60;
 
 let score = 0;
@@ -152,6 +154,18 @@ function getSpawnIntervalForTime(seconds) {
   const min = SPAWN_START_MIN + (SPAWN_END_MIN - SPAWN_START_MIN) * progress;
   const max = SPAWN_START_MAX + (SPAWN_END_MAX - SPAWN_START_MAX) * progress;
   return randomBetween(min, max);
+}
+
+function getSpawnBatchCount(seconds) {
+  if (seconds < 20) {
+    return 1;
+  }
+
+  if (seconds < 40) {
+    return Math.random() < 0.25 ? 2 : 1;
+  }
+
+  return Math.random() < 0.6 ? 2 : 1;
 }
 
 function loadSprite(path) {
@@ -288,7 +302,9 @@ function checkCatch(item) {
 
 function getRewardPoints(currentScore) {
   const base = Math.floor(currentScore / 40);
-  return clamp(base + 1, 1, 12);
+  const total = base + 1;
+  const boostedReward = Math.round(total * 1.2);
+  return clamp(boostedReward, 1, 14);
 }
 
 function endRun(reasonMessage) {
@@ -328,7 +344,10 @@ function step(timestamp) {
   if (spawnTimer >= spawnInterval) {
     spawnTimer = 0;
     spawnInterval = getSpawnIntervalForTime(elapsedSeconds);
-    spawnItem();
+    const batchCount = getSpawnBatchCount(elapsedSeconds);
+    for (let i = 0; i < batchCount; i += 1) {
+      spawnItem();
+    }
   }
 
   for (let i = items.length - 1; i >= 0; i -= 1) {
@@ -476,7 +495,7 @@ function init() {
   loadBestScore();
   catcherX = Math.round((getFieldWidth() - CATCHER_WIDTH) / 2);
   placeCatcher();
-  applySpriteIfAvailable(catcher, SPRITE_ASSETS.pet);
+  applySpriteIfAvailable(catcher, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.pet);
   updateHud();
   setStatus("Ready");
   bindEvents();
