@@ -1,3 +1,5 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const arena = document.getElementById("bathArena");
 const pet = document.getElementById("bathPet");
 const spotsLayer = document.getElementById("bathSpotsLayer");
@@ -586,7 +588,7 @@ function bindEvents() {
 
 function init() {
   loadBestScore();
-  applySpriteIfAvailable(pet, SPRITE_ASSETS.pet);
+  applySpriteIfAvailable(pet, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.pet);
   applySpriteIfAvailable(sponge, SPRITE_ASSETS.sponge);
   resetSponge();
   updateHud();

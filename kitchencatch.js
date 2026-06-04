@@ -1,3 +1,5 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const field = document.getElementById("kitchenField");
 const catcher = document.getElementById("kitchenCatcher");
 
@@ -478,7 +480,7 @@ function init() {
   loadBestScore();
   catcherX = Math.round((getFieldWidth() - CATCHER_WIDTH) / 2);
   placeCatcher();
-  applySpriteIfAvailable(catcher, SPRITE_ASSETS.pet);
+  applySpriteIfAvailable(catcher, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.pet);
   updateHud();
   setStatus("Ready");
   bindEvents();

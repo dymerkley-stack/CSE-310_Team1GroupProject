@@ -1,3 +1,5 @@
+import { getSelectedAvatarForLevel } from "./avatar-selection.js";
+
 const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const WELLNESS_STATE_KEY = "wellnessState";
 const BATTLE_LOG_LIMIT = 5;
@@ -651,7 +653,13 @@ function renderBattleLog() {
 
 function renderBattleUI() {
   const playerAvatar = document.getElementById("playerPetAvatar");
-  applyAvatarSpriteWithFallback(playerAvatar, SPRITE_ASSETS.player, PLAYER_FALLBACK_AVATAR);
+  const playerAvatarConfig = getSelectedAvatarForLevel(playerProgress.level);
+  applyAvatarSpriteWithFallback(
+    playerAvatar,
+    playerAvatarConfig.src || SPRITE_ASSETS.player,
+    PLAYER_FALLBACK_AVATAR,
+  );
+  playerAvatar.setAttribute("aria-label", playerAvatarConfig.alt);
 
   document.getElementById("playerLevel").textContent = `Level ${playerProgress.level}`;
   document.getElementById("playerPhysical").textContent = calculatePetStats("physical");

@@ -713,6 +713,23 @@ body {
   text-align: center;
 }
 
+.character-design-card:not(.locked) {
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.character-design-card:not(.locked):hover,
+.character-design-card:not(.locked):focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-teal);
+}
+
+.character-design-card--selected {
+  border-color: var(--color-coral);
+  box-shadow: 0 0 0 3px rgba(244, 96, 54, 0.18);
+}
+
 .character-design-card:not(.locked) > img {
   width: 100%;
   max-height: 300px;

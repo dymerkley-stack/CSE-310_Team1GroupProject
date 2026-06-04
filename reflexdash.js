@@ -1,3 +1,5 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const track = document.getElementById("reflexTrack");
 const player = document.getElementById("reflexPlayer");
 const scoreText = document.getElementById("reflexScore");
@@ -455,7 +457,7 @@ function init() {
   loadBestScore();
   computeLaneHeights();
   movePlayerToLane(1);
-  applySpriteIfAvailable(player, SPRITE_ASSETS.player);
+  applySpriteIfAvailable(player, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.player);
   updateHud();
   bindEvents();
 

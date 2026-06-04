@@ -1,4 +1,10 @@
 import { loadLatestState } from "./database.js";
+import {
+  AVATAR_OPTIONS,
+  SELECTED_AVATAR_KEY,
+  getSelectedAvatarForLevel,
+  getUnlockedAvatars,
+} from "./avatar-selection.js";
 
 const DESIGN_CARDS_SELECTOR = ".character-design-card[data-level]";
 const LOCAL_PROGRESS_KEY = "wellnessProgress";
@@ -32,48 +38,112 @@ async function initializeGalleryUnlocks() {
   }
 
   const cards = document.querySelectorAll(DESIGN_CARDS_SELECTOR);
+  const unlockedDesigns = getUnlockedDesigns(currentLevel);
+  const selectedDesign = getSelectedDesign(currentLevel);
 
   cards.forEach((card) => {
     const requiredLevel = Number(card.dataset.level) || 1;
+    const matchingDesign = AVATAR_OPTIONS.find((item) => item.minLevel === requiredLevel);
+    if (matchingDesign) {
+      card.dataset.avatarSrc = matchingDesign.src;
+    }
+
     if (currentLevel >= requiredLevel) {
       card.classList.remove("locked");
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-pressed", String(card.dataset.avatarSrc === selectedDesign.src));
     } else {
       card.classList.add("locked");
+      card.tabIndex = -1;
+      card.removeAttribute("role");
+      card.setAttribute("aria-pressed", "false");
     }
+
+    card.classList.toggle(
+      "character-design-card--selected",
+      card.dataset.avatarSrc === selectedDesign.src,
+    );
   });
 
-  updatePreviewCard(currentLevel);
+  bindCardSelection(cards, unlockedDesigns, currentLevel);
+  updatePreviewCard(currentLevel, selectedDesign);
 }
 
-function updatePreviewCard(currentLevel) {
+function getUnlockedDesigns(currentLevel) {
+  return getUnlockedAvatars(currentLevel).map((item) => ({
+    level: item.minLevel,
+    src: item.src,
+    label: item.alt,
+  }));
+}
+
+function getSelectedDesign(currentLevel) {
+  const selectedAvatar = getSelectedAvatarForLevel(currentLevel);
+  return {
+    level: selectedAvatar.minLevel,
+    src: selectedAvatar.src,
+    label: selectedAvatar.alt,
+  };
+}
+
+function selectDesign(card, design, currentLevel, cards) {
+  localStorage.setItem(SELECTED_AVATAR_KEY, design.src);
+
+  cards.forEach((currentCard) => {
+    const isSelected = currentCard === card;
+    currentCard.classList.toggle("character-design-card--selected", isSelected);
+    currentCard.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  updatePreviewCard(currentLevel, design);
+}
+
+function bindCardSelection(cards, unlockedDesigns, currentLevel) {
+  cards.forEach((card) => {
+    if (card.dataset.selectionBound === "true") {
+      return;
+    }
+
+    const requiredLevel = Number(card.dataset.level) || 1;
+    const design = unlockedDesigns.find((item) => item.level === requiredLevel);
+    if (!design) {
+      return;
+    }
+
+    const handleSelection = () => selectDesign(card, design, currentLevel, cards);
+
+    card.addEventListener("click", handleSelection);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      handleSelection();
+    });
+
+    card.dataset.selectionBound = "true";
+    card.dataset.avatarSrc = design.src;
+  });
+}
+
+function updatePreviewCard(currentLevel, selectedDesign = getSelectedDesign(currentLevel)) {
   const previewImage = document.getElementById("previewImage");
   const previewLabel = document.getElementById("previewLabel");
   const previewText = document.getElementById("previewText");
 
-  const unlockOrder = [
-    { level: 1, src: "Avatar/Default.png", label: "The Spud Bud" },
-    { level: 5, src: "Avatar/Sprout.png", label: "The Spud Sprout" },
-    { level: 10, src: "Avatar/Farmer.png", label: "The Spud Farmer" },
-    { level: 15, src: "Avatar/Gym.png", label: "The Gym Spud" },
-    { level: 20, src: "Avatar/Sleepwear.png", label: "The Sleepy Spud" },
-    { level: 25, src: "Avatar/Old_Money.png", label: "The Loaded Spud" },
-  ];
-
-  const currentDesign = unlockOrder
-    .filter((item) => currentLevel >= item.level)
-    .pop() || unlockOrder[0];
-
   if (previewImage) {
-    previewImage.src = currentDesign.src;
-    previewImage.alt = `${currentDesign.label} preview`;
+    previewImage.src = selectedDesign.src;
+    previewImage.alt = `${selectedDesign.label} preview`;
   }
 
   if (previewLabel) {
-    previewLabel.textContent = currentDesign.label;
+    previewLabel.textContent = selectedDesign.label;
   }
 
   if (previewText) {
-    previewText.textContent = `Unlocked at level ${currentDesign.level}.`;
+    previewText.textContent = `Selected for Home and games. Unlocked at level ${selectedDesign.level}.`;
   }
 }
 
