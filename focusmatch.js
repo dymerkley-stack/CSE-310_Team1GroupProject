@@ -1,3 +1,5 @@
+import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
+
 const board = document.getElementById("focusBoard");
 const cells = Array.from(board.querySelectorAll(".focus-cell"));
 const scoreText = document.getElementById("focusScore");
@@ -12,16 +14,6 @@ const claimRewardBtn = document.getElementById("claimFocusRewardBtn");
 const BEST_SCORE_KEY = "focusMatchBestScore";
 const WELLNESS_STATE_KEY = "wellnessState";
 
-// Optional sprite paths. Leave empty strings to keep fallback placeholders.
-const SPRITE_ASSETS = {
-  cells: {
-    idle: "",
-    active: "",
-    correct: "",
-    wrong: "",
-  },
-};
-
 let score = 0;
 let bestScore = 0;
 let round = 1;
@@ -32,7 +24,7 @@ let rewardPending = 0;
 let running = false;
 let acceptingInput = false;
 let runToken = 0;
-const spriteLoadCache = new Map();
+const selectedAvatar = getSelectedAvatarForCurrentProgress();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -44,64 +36,31 @@ function sleep(ms) {
   });
 }
 
-function loadSprite(path) {
-  if (!path) {
-    return Promise.resolve(false);
+function ensureCellPet(cell) {
+  let sprite = cell.querySelector(".focus-cell-pet");
+  if (!sprite) {
+    sprite = document.createElement("img");
+    sprite.className = "focus-cell-pet";
+    sprite.alt = "";
+    sprite.hidden = true;
+    sprite.setAttribute("aria-hidden", "true");
+    cell.appendChild(sprite);
   }
 
-  const cached = spriteLoadCache.get(path);
-  if (cached) {
-    return cached;
+  sprite.src = selectedAvatar.src;
+  sprite.alt = selectedAvatar.alt;
+  return sprite;
+}
+
+function setCellPetVisibility(cell, visible) {
+  const sprite = ensureCellPet(cell);
+  sprite.hidden = !visible;
+}
+
+function initializeCellPets() {
+  for (let i = 0; i < cells.length; i += 1) {
+    setCellPetVisibility(cells[i], false);
   }
-
-  const promise = new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => resolve(true);
-    image.onerror = () => resolve(false);
-    image.src = path;
-  });
-
-  spriteLoadCache.set(path, promise);
-  return promise;
-}
-
-function enableSprite(element, path) {
-  element.classList.add("focus-uses-sprite");
-  element.style.backgroundImage = `url("${path}")`;
-}
-
-function disableSprite(element) {
-  element.classList.remove("focus-uses-sprite");
-  element.style.backgroundImage = "";
-}
-
-function applySpriteIfAvailable(element, path) {
-  if (!path) {
-    disableSprite(element);
-    return;
-  }
-
-  element.dataset.spritePath = path;
-
-  loadSprite(path).then((loaded) => {
-    if (!element.isConnected || element.dataset.spritePath !== path) {
-      return;
-    }
-
-    if (loaded) {
-      enableSprite(element, path);
-    } else {
-      disableSprite(element);
-    }
-  });
-}
-
-function getCellSpritePathForState(state) {
-  return SPRITE_ASSETS.cells[state] ?? "";
-}
-
-function applyCellSpriteState(cell, state) {
-  applySpriteIfAvailable(cell, getCellSpritePathForState(state));
 }
 
 function setStatus(message) {
@@ -163,16 +122,17 @@ function flashCell(index, className, duration = 260) {
   }
 
   cell.classList.add(className);
-  applyCellSpriteState(cell, state);
+  setCellPetVisibility(cell, true);
 
   window.setTimeout(() => {
     cell.classList.remove(className);
-    applyCellSpriteState(cell, "idle");
+    setCellPetVisibility(cell, false);
   }, duration);
 }
 
 async function showSequence(token) {
   setBoardInteractive(false);
+  initializeCellPets();
 
   const baseGap = Math.max(180, 340 - round * 8);
   const flashDuration = Math.max(170, 300 - round * 6);
@@ -391,9 +351,7 @@ function init() {
   setBoardInteractive(false);
   setStatus("Ready");
 
-  for (let i = 0; i < cells.length; i += 1) {
-    applyCellSpriteState(cells[i], "idle");
-  }
+  initializeCellPets();
 
   bindEvents();
 }

@@ -955,15 +955,14 @@ body {
 }
 
 .focus-cell {
+  position: relative;
   aspect-ratio: 1 / 1;
   border: 2px solid var(--line);
-  background: #efefef;
+  background: radial-gradient(circle at center, #f7f7f7 0 36%, #dedede 37% 58%, #c9c9c9 59% 100%);
   border-radius: 8px;
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  overflow: hidden;
 }
 
 .focus-cell:disabled {
@@ -975,19 +974,37 @@ body {
 }
 
 .focus-cell--active {
-  background: #4d96ff;
+  background: radial-gradient(circle at center, #dff1ff 0 35%, #bbdbff 36% 57%, #7fb8ff 58% 100%);
 }
 
 .focus-cell--correct {
-  background: #6bcB77;
+  background: radial-gradient(circle at center, #e7f9ea 0 35%, #c9f0cf 36% 57%, #7fcf8d 58% 100%);
 }
 
 .focus-cell--wrong {
-  background: #ff6b6b;
+  background: radial-gradient(circle at center, #ffe8e8 0 35%, #ffc9c9 36% 57%, #ff8b8b 58% 100%);
 }
 
-.focus-cell.focus-uses-sprite {
-  background-color: transparent;
+.focus-cell-pet {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: 82%;
+  height: 82%;
+  transform: translate(-50%, 14%) scale(0.25);
+  transform-origin: center bottom;
+  opacity: 0;
+  transition: transform 150ms ease, opacity 150ms ease;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.18));
+}
+
+.focus-cell--active .focus-cell-pet,
+.focus-cell--correct .focus-cell-pet,
+.focus-cell--wrong .focus-cell-pet {
+  opacity: 1;
+  transform: translate(-50%, -10%) scale(1);
 }
 
 .focus-board--locked .focus-cell {
