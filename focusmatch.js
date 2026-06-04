@@ -200,7 +200,9 @@ function getRoundPoints(length) {
 function getRewardPoints() {
   const base = Math.floor(score / 70);
   const bonus = Math.floor((round - 1) / 2);
-  return clamp(base + bonus + 1, 2, 14);
+  const total = base + bonus + 1;
+  const boostedReward = Math.round(total * 1.2);
+  return clamp(boostedReward, 2, 16);
 }
 
 function endRun() {

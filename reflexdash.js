@@ -263,7 +263,8 @@ function getSpawnIntervalForTime(seconds) {
 
 function getRewardPoints(currentScore) {
   const scoreReward = Math.floor(currentScore / 40);
-  return clamp(scoreReward, 1, 12);
+  const boostedReward = Math.round(scoreReward * 1.2);
+  return clamp(boostedReward, 1, 14);
 }
 
 function endRun() {

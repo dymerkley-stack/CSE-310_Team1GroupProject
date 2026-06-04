@@ -354,7 +354,9 @@ function heatWater() {
 
 function getRewardPoints(currentScore) {
   const base = Math.floor(currentScore / 45);
-  return clamp(base + 1, 1, 12);
+  const total = base + 1;
+  const boostedReward = Math.round(total * 1.2);
+  return clamp(boostedReward, 1, 14);
 }
 
 function endRun(reasonMessage) {

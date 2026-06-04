@@ -331,7 +331,9 @@ function onCardClick(cardData) {
 function getRewardPoints() {
   const pairReward = pairsFound * 2;
   const scoreReward = Math.floor(score / 40);
-  return clamp(pairReward + scoreReward + 1, 2, 16);
+  const total = pairReward + scoreReward + 1;
+  const boostedReward = Math.round(total * 1.15);
+  return clamp(boostedReward, 2, 18);
 }
 
 function endRun(reasonMessage) {
