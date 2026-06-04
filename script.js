@@ -765,6 +765,7 @@ function renderTaskList() {
     const card = document.createElement("article");
     card.className = "task-card";
     card.setAttribute("data-category", task.category);
+    card.setAttribute("data-task-id", task.id);
     if (task.category !== activeCategory) {
       card.classList.add("hidden");
     }
@@ -782,6 +783,10 @@ function renderTaskList() {
       <div>
         <h3 class="task-title">${safeTitle}</h3>
         <p class="task-details">${safeDetails}</p>
+        <div class="task-meta">
+          <span class="timer" aria-live="polite"></span>
+          <span class="status" aria-hidden="true"></span>
+        </div>
       </div>
       <button class="${pointsClass}" data-task-id="${task.id}" data-action="${task.category}" type="button" aria-label="Complete ${task.category} task for ${task.points} points" ${disabled}>+${task.points} ${toTitleCase(task.category)}</button>
     `;
@@ -795,7 +800,8 @@ function toTitleCase(value) {
 }
 
 function escapeHtml(value) {
-  return value
+  const text = String(value ?? "");
+  return text
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -1006,6 +1012,12 @@ function completeTask(taskId, sourceButton) {
   if (!task || task.completed || state.gameOver) return;
 
   task.completed = true;
+    // start the 12-hour cooldown for this task when it's completed
+    try {
+      setTaskExpiry(task.id);
+    } catch (e) {
+      // ignore if timer helpers not yet available
+    }
   applyAction(task.category);
   addExp(task.points);
   saveDailyTasks();
@@ -1029,15 +1041,17 @@ function addCustomGoal(category, title) {
   const cleanedTitle = title.trim();
   if (!cleanedTitle) return;
 
-  dailyTasks.push({
+  const newTask = {
     id: `${todayKey()}-${category}-custom-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     category,
     title: cleanedTitle,
-    details: "Custom daily goal added by you.",
+    details: `Custom ${toTitleCase(category)} goal created by you.`,
     points: DEFAULT_CATEGORY_POINTS[category],
     completed: false,
     isCustom: true,
-  });
+  };
+  dailyTasks.push(newTask);
+  try { ensureExpiry(newTask.id); } catch (e) { /* ignore */ }
 
   saveDailyTasks();
   renderTaskList();
@@ -1054,6 +1068,8 @@ function resetGoals() {
   dailyTasks = generateDailyTasks();
   isCustomGoalPanelOpen = false;
   saveDailyTasks();
+  // ensure every generated task has a 12-hour expiry started
+  try { dailyTasks.forEach((t) => ensureExpiry(t.id)); } catch (e) { /* ignore */ }
   renderTaskList();
   renderTabs();
 }
@@ -1129,6 +1145,119 @@ resetBtn.addEventListener("click", resetGame);
 if (resetGoalsBtn) {
   resetGoalsBtn.addEventListener("click", resetGoals);
 }
+
+// --- Per-task 12-hour timer helpers ---------------------------------
+const TIME_COUNTDOWN = 3 * 60 * 60 * 1000;
+
+function setTaskExpiry(taskId) {
+  const expiry = Date.now() + TIME;
+  localStorage.setItem("taskExpiry:" + taskId, String(expiry));
+  return expiry;
+}
+
+function getTaskExpiry(taskId) {
+  const v = localStorage.getItem("taskExpiry:" + taskId);
+  return v ? parseInt(v, 10) : null;
+}
+
+function ensureExpiry(taskId) {
+  if (!getTaskExpiry(taskId)) setTaskExpiry(taskId);
+}
+
+function getRemainingMs(taskId) {
+  const e = getTaskExpiry(taskId);
+  return e ? e - Date.now() : 0;
+}
+
+function formatRemaining(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+  const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+  const secs = String(totalSec % 60).padStart(2, '0');
+  return `${hrs}:${mins}:${secs}`;
+}
+
+function handleTaskExpiry(taskId) {
+  const taskIndex = dailyTasks.findIndex((t) => t.id === taskId);
+  if (taskIndex === -1) return;
+
+  const oldTask = dailyTasks[taskIndex];
+  const category = oldTask.category;
+  
+  // Get existing task titles in this category to avoid duplicates
+  const existingTitles = new Set(
+    dailyTasks
+      .filter((t) => t.category === category)
+      .map((t) => t.title),
+  );
+  
+  // Find a new task from the pool that doesn't already exist
+  const pool = taskPools[category] ?? [];
+  const availableTasks = shuffleCopy(pool).filter(
+    (t) => !existingTitles.has(t.title),
+  );
+  
+  // If we found a new task, replace the old one; otherwise just reset it
+  if (availableTasks.length > 0) {
+    const newTaskData = availableTasks[0];
+    dailyTasks[taskIndex] = {
+      id: `${todayKey()}-${category}-regenerated-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      category,
+      title: newTaskData.title,
+      details: newTaskData.details,
+      points: newTaskData.points,
+      completed: false,
+    };
+    // Start fresh expiry timer for the new task
+    setTaskExpiry(dailyTasks[taskIndex].id);
+    localStorage.removeItem("taskExpiry:" + taskId);
+  } else {
+    // Fallback: just reset the old task
+    dailyTasks[taskIndex].completed = false;
+    setTaskExpiry(taskId);
+  }
+  
+  saveDailyTasks();
+  renderTaskList();
+  renderTabs();
+}
+
+function updateTimers() {
+  document.querySelectorAll('[data-task-id]').forEach((card) => {
+    const id = card.getAttribute('data-task-id');
+    const task = dailyTasks.find((t) => t.id === id);
+    const timerEl = card.querySelector('.timer');
+    const statusEl = card.querySelector('.status');
+
+    if (!task) {
+      if (timerEl) timerEl.textContent = '';
+      if (statusEl) statusEl.textContent = '';
+      return;
+    }
+
+    if (task.completed) {
+      const rem = getRemainingMs(id);
+      if (rem <= 0) {
+        handleTaskExpiry(id);
+        // restart cooldown after refresh so UI shows full window
+        setTaskExpiry(id);
+        if (timerEl) timerEl.textContent = formatRemaining(TWELVE_HOURS);
+        if (statusEl) statusEl.textContent = 'Available';
+      } else {
+        if (timerEl) timerEl.textContent = formatRemaining(rem);
+        if (statusEl) statusEl.textContent = 'Available in';
+      }
+    } else {
+      if (timerEl) timerEl.textContent = '';
+      if (statusEl) statusEl.textContent = 'Available';
+    }
+  });
+}
+
+// start timer loop
+updateTimers();
+setInterval(updateTimers, 1000);
 
 loadProgress();
 loadWellnessState();

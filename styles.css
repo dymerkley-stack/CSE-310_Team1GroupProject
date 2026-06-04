@@ -388,6 +388,28 @@ body {
   line-height: 1.4;
 }
 
+.task-meta {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.task-meta .timer {
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff7e6;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.task-meta .status {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .points {
   border: 2px solid var(--line);
   padding: 8px 12px;
