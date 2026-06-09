@@ -46,6 +46,7 @@ let battleState = {
   pendingEnemyAttack: null,
   lastPlayerAttribute: null,
   pendingEnemySpecial: null,
+  lastComboMessage: "Last Combo: None",
   dungeon: { active: false, floor: 0, totalFloors: DUNGEON_TOTAL_FLOORS },
   lastBattleWon: null,
 };
@@ -100,6 +101,74 @@ const attributeSynergies = {
       const restored = 4;
       playerState.social = Math.min(100, playerState.social + restored);
       addBattleLog(`Synergy effect: Restored ${restored} Social energy.`);
+    },
+  },
+  "physical->spiritual": {
+    name: "Guardian Stance",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.playerStatus.regenTurns = Math.max(battleState.playerStatus.regenTurns, 1);
+      addBattleLog("Synergy effect: Regeneration primed for your next turn.");
+    },
+  },
+  "spiritual->physical": {
+    name: "Vital Strike",
+    bonusMultiplier: 1.25,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.physical = Math.min(100, playerState.physical + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Physical energy.`);
+    },
+  },
+  "mental->social": {
+    name: "Silver Tongue",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.enemyStatus.weakenedTurns = Math.max(battleState.enemyStatus.weakenedTurns, 1);
+      addBattleLog("Synergy effect: Enemy is weakened for 1 turn.");
+    },
+  },
+  "social->mental": {
+    name: "Crowd Read",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.mental = Math.min(100, playerState.mental + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Mental energy.`);
+    },
+  },
+  "intellectual->spiritual": {
+    name: "Zen Equation",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.spiritual = Math.min(100, playerState.spiritual + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Spiritual energy.`);
+    },
+  },
+  "spiritual->intellectual": {
+    name: "Clarity Pulse",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.playerStatus.focusTurns = Math.max(battleState.playerStatus.focusTurns, 1);
+      addBattleLog("Synergy effect: Focus empowered for 1 turn.");
+    },
+  },
+  "physical->intellectual": {
+    name: "Precision Drill",
+    bonusMultiplier: 1.22,
+    applyEffect: () => {
+      battleState.enemyStatus.vulnerableTurns = Math.max(battleState.enemyStatus.vulnerableTurns, 1);
+      addBattleLog("Synergy effect: Enemy becomes vulnerable for 1 turn.");
+    },
+  },
+  "social->physical": {
+    name: "Rally Charge",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 4;
+      playerState.physical = Math.min(100, playerState.physical + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Physical energy.`);
     },
   },
 };
@@ -625,6 +694,10 @@ function getComboSeedHint() {
   return `Combo Seed: ${formatAttributeName(battleState.lastPlayerAttribute)}`;
 }
 
+function getComboResultText() {
+  return battleState.lastComboMessage || "Last Combo: None";
+}
+
 function getMonsterAscii(monsterName) {
   return monsterAsciiMap[monsterName] || "o_o";
 }
@@ -688,6 +761,7 @@ function renderBattleUI() {
   }
 
   document.getElementById("battleStatus").textContent = battleState.isPlayerTurn ? "Your Turn" : "Enemy Attacking...";
+  document.getElementById("comboResult").textContent = getComboResultText();
   document.getElementById("comboSeedHint").textContent = getComboSeedHint();
   document.getElementById("dungeonStatus").textContent = getDungeonStatusText();
 
@@ -713,6 +787,7 @@ function performAction(attribute) {
   const isCritical = Math.random() < CRITICAL_HIT_CHANCE;
   let damage = getAttackDamage(attribute);
   const activeSynergy = getActiveSynergy(attribute);
+  const previousAttribute = battleState.lastPlayerAttribute;
 
   if (battleState.playerStatus.focusTurns > 0) {
     damage = Math.round(damage * 1.2);
@@ -729,7 +804,10 @@ function performAction(attribute) {
   if (activeSynergy) {
     damage = Math.round(damage * activeSynergy.bonusMultiplier);
     addBattleLog(`Synergy triggered: ${activeSynergy.name}!`);
+    battleState.lastComboMessage = `Last Combo: ${activeSynergy.name} (${formatAttributeName(previousAttribute)} -> ${formatAttributeName(attribute)})`;
     activeSynergy.applyEffect();
+  } else {
+    battleState.lastComboMessage = "Last Combo: None this turn";
   }
 
   if (isCritical) {
@@ -766,6 +844,7 @@ function performDefend() {
 
   battleState.isDefending = true;
   battleState.lastPlayerAttribute = null;
+  battleState.lastComboMessage = "Last Combo: None (Defend used)";
   addBattleLog("You brace for impact!");
   battleState.isPlayerTurn = false;
   renderBattleUI();
@@ -902,6 +981,7 @@ function startNewBattle(options = {}) {
   battleState.enemyStatus = { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
   battleState.lastPlayerAttribute = null;
   battleState.pendingEnemySpecial = null;
+  battleState.lastComboMessage = "Last Combo: None";
   clearEnemyIntentText();
   planNextEnemyIntent();
 
