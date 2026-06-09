@@ -42,12 +42,12 @@ const CARD_LABELS = {
 };
 
 const CARD_GLYPHS = {
-  syringe: "S",
+  syringe: "A",
   bandage: "B",
-  stethoscope: "T",
-  medicine: "M",
-  thermometer: "H",
-  heartMonitor: "C",
+  stethoscope: "C",
+  medicine: "D",
+  thermometer: "E",
+  heartMonitor: "F",
 };
 
 let score = 0;
@@ -197,7 +197,7 @@ function createCard(type, index) {
   button.type = "button";
   button.className = "vet-card";
   button.dataset.index = String(index);
-  button.setAttribute("aria-label", `Vet card ${index + 1}`);
+  button.setAttribute("aria-label", `Vet card ${index + 1}: ${CARD_LABELS[type]}`);
 
   const inner = document.createElement("span");
   inner.className = "vet-card-inner";
@@ -209,6 +209,11 @@ function createCard(type, index) {
   glyph.className = "vet-card-glyph";
   glyph.textContent = CARD_GLYPHS[type] ?? "?";
   front.appendChild(glyph);
+
+  const label = document.createElement("span");
+  label.className = "vet-card-label";
+  label.textContent = CARD_LABELS[type] ?? "Unknown";
+  front.appendChild(label);
 
   const back = document.createElement("span");
   back.className = "vet-card-face vet-card-back";

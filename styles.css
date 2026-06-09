@@ -1416,10 +1416,12 @@ body {
 }
 
 .vet-card-inner {
+  display: block;
   position: relative;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 190ms ease;
 }
 
@@ -1437,6 +1439,7 @@ body {
   align-items: center;
   justify-content: center;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -1449,12 +1452,25 @@ body {
 .vet-card-front {
   transform: rotateY(180deg);
   background: linear-gradient(145deg, #ffffff 0%, #f3f3f3 100%);
+  flex-direction: column;
+  gap: 6px;
 }
 
 .vet-card-glyph {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   color: #2f3d5c;
+}
+
+.vet-card-label {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #435273;
+  text-align: center;
+  padding: 0 4px;
 }
 
 .vet-card-face.vet-uses-sprite {
