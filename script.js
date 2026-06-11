@@ -422,6 +422,7 @@ const levelText = document.getElementById("levelText");
 const expFill = document.getElementById("expFill");
 const expText = document.getElementById("expText");
 const taskHeader = document.getElementById("taskHeader");
+const taskArea = document.querySelector(".task-area");
 const resetBtn = document.getElementById("resetBtn");
 const resetGoalsBtn = document.getElementById("resetGoalsBtn");
 const taskList = document.getElementById("taskList");
@@ -925,6 +926,18 @@ function renderTabs() {
   }
 
   syncCustomGoalForm();
+
+  if (taskArea) {
+  taskArea.classList.remove(
+    "physical-theme",
+    "mental-theme",
+    "social-theme",
+    "intellectual-theme",
+    "spiritual-theme"
+  );
+
+  taskArea.classList.add(`${activeCategory}-theme`);
+}
 }
 
 function moodText(avg) {

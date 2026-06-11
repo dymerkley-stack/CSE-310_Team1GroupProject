@@ -298,6 +298,85 @@ body {
 
 .task-area {
   padding: 30px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.task-area.physical-theme {
+  background: rgba(244, 96, 54, 0.08);
+  color: var(--ink);
+}
+
+.task-area.mental-theme {
+  background: rgba(27, 153, 139, 0.08);
+  color: var(--ink);
+}
+
+.task-area.social-theme {
+  background: rgba(231, 29, 54, 0.08);
+  color: var(--ink);
+}
+
+.task-area.intellectual-theme {
+  background: rgba(197, 216, 109, 0.15);
+  color: var(--ink);
+}
+
+.task-area.spiritual-theme {
+  background: rgba(100, 85, 200, 0.08);
+  color: var(--ink);
+}
+
+.task-card {
+  transition: background-color 0.3s ease;
+}
+
+.task-area.physical-theme .task-card {
+  background: rgba(244, 96, 54, 0.12);
+}
+
+.task-area.mental-theme .task-card {
+  background: rgba(27, 153, 139, 0.12);
+}
+
+.task-area.social-theme .task-card {
+  background: rgba(231, 29, 54, 0.12);
+}
+
+.task-area.intellectual-theme .task-card {
+  background: rgba(197, 216, 109, 0.25);
+}
+
+.task-area.spiritual-theme .task-card {
+  background: rgba(100, 85, 200, 0.12);
+}
+
+.points {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.task-area.physical-theme .points {
+  background: var(--color-coral);
+  color: white;
+}
+
+.task-area.mental-theme .points {
+  background: var(--color-teal);
+  color: white;
+}
+
+.task-area.social-theme .points {
+  background: var(--color-red);
+  color: white;
+}
+
+.task-area.intellectual-theme .points {
+  background: var(--color-lime);
+  color: black;
+}
+
+.task-area.spiritual-theme .points {
+  background: var(--color-dark-purple);
+  color: white;
 }
 
 .section-header {
