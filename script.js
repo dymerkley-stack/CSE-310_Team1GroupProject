@@ -3,7 +3,13 @@ import {
   saveGameState,
   saveToCloud,
   getPlayerId,
+  loadLegacyState,
 } from "./database.js";
+import { signUp, signIn } from "./database.js";
+import { getCurrentUser } from "./database.js";
+
+const user = await getCurrentUser();
+console.log("CURRENT USER:", user);
 
 async function testDatabase() {
   // TEST SAVE
@@ -29,20 +35,58 @@ const initialState = {
 
 const state = { ...initialState };
 
-async function syncCloudSave() {
-  const cloudData = await loadLatestState();
+let hasLoadedCloudSave = false;
+
+export async function syncCloudSave() {
+  // Prevent multiple loads (this is what was causing your level rollback)
+  if (hasLoadedCloudSave) return;
+  hasLoadedCloudSave = true;
+
+  let cloudData = await loadLatestState();
+
+  // No modern save found → try legacy
+  if (!cloudData) {
+    cloudData = await loadLegacyState();
+
+    // Found legacy save → migrate it
+    if (cloudData) {
+      console.log("Migrating legacy save");
+
+      await saveToCloud({
+        physical: cloudData.physical,
+        mental: cloudData.mental,
+        social: cloudData.social,
+        intellectual: cloudData.intellectual,
+        spiritual: cloudData.spiritual,
+        level: cloudData.level,
+        exp: cloudData.exp,
+        checkins: cloudData.checkins,
+      });
+    }
+  }
 
   if (cloudData) {
+    console.log("Loading state:", cloudData);
+
     Object.keys(cloudData).forEach((key) => {
       if (key in state && cloudData[key] !== null) {
         state[key] = cloudData[key];
       }
     });
+
+    console.log("State after cloud sync:", state);
   }
 }
+
+function syncProgressModels() {
+  // nothing to sync anymore
+  // state is now the single source of truth
+}
+
 async function initializeGame() {
   await syncCloudSave();
-  console.log("Cloud save loaded:", state);
+  syncProgressModels();
+  console.log("State after cloud sync:", state);
 }
 
 const wellnessKeys = [
@@ -77,12 +121,7 @@ const DEFAULT_CATEGORY_POINTS = {
   spiritual: 18,
 };
 initializeGame();
-testDatabase();
-console.log("Before:", state.physical);
-
-state.physical = 20;
-
-console.log("After:", state.physical);
+// testDatabase();
 
 const taskPools = {
   physical: [
@@ -434,7 +473,9 @@ const customGoalSubmit = document.getElementById("customGoalSubmit");
 const customGoalHint = document.getElementById("customGoalHint");
 const recommendationText = document.getElementById("recommendationText");
 const recommendationButton = document.getElementById("recommendationButton");
-const useRecommendationButton = document.getElementById("useRecommendationButton");
+const useRecommendationButton = document.getElementById(
+  "useRecommendationButton",
+);
 
 let activeCategory = "physical";
 let currentRecommendation = "";
@@ -464,8 +505,8 @@ async function saveProgress() {
     }),
   );
   saveWellnessState();
-  const playerId = await getPlayerId();
-  await saveToCloud(state, playerId);
+  await saveToCloud(state);
+  console.log("SAVE PROGRESS CALLED WITH", structuredClone(state));
 }
 
 function saveWellnessState() {
@@ -635,6 +676,8 @@ function showLevelUpBanner(levelsGained = 1) {
 }
 
 function addExp(amount) {
+  console.log("🔥 addExp CALLED");
+  console.log("ADD EXP START", structuredClone(state));
   if (!Number.isFinite(amount) || amount <= 0) return;
 
   state.exp += Math.floor(amount);
@@ -649,8 +692,9 @@ function addExp(amount) {
     rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
     showLevelUpBanner(levelsGained);
   }
+  console.log("AFTER LEVEL CHECK", structuredClone(state));
 
-  saveProgress();
+  saveToCloud(state);
   render();
 }
 
@@ -830,13 +874,15 @@ function getGoalRecommendation(category) {
   }
 
   const fallback = shuffleCopy(pool).find((task) => task.title);
-  return (
-    fallback?.title || `Add one extra ${category} goal for today.`
-  );
+  return fallback?.title || `Add one extra ${category} goal for today.`;
 }
 
 function updateRecommendation() {
-  if (!recommendationText || !recommendationButton || !useRecommendationButton) {
+  if (
+    !recommendationText ||
+    !recommendationButton ||
+    !useRecommendationButton
+  ) {
     return;
   }
 
@@ -928,7 +974,6 @@ function moodText(avg) {
   return "Your pet feels neglected. Do a wellness action now.";
 }
 
-
 const avatarLevelMap = [
   { minLevel: 1, src: "Avatar/Default.png", alt: "The Spud Bud" },
   { minLevel: 5, src: "Avatar/Sprout.png", alt: "The Spud Sprout" },
@@ -941,9 +986,9 @@ const avatarLevelMap = [
 function updatePetAvatar() {
   if (!petAvatar) return;
 
-  const currentAvatar = avatarLevelMap
-    .filter((item) => state.level >= item.minLevel)
-    .pop() || avatarLevelMap[0];
+  const currentAvatar =
+    avatarLevelMap.filter((item) => state.level >= item.minLevel).pop() ||
+    avatarLevelMap[0];
 
   petAvatar.src = currentAvatar.src;
   petAvatar.alt = currentAvatar.alt;
@@ -979,6 +1024,7 @@ function render() {
 }
 
 function applyAction(action) {
+  console.log("BEFORE ACTION", JSON.stringify(state));
   if (state.gameOver) return;
 
   const boosts = {
@@ -1002,6 +1048,7 @@ function applyAction(action) {
 }
 
 function completeTask(taskId, sourceButton) {
+  console.log("BEFORE TASK", JSON.stringify(state));
   const task = dailyTasks.find((item) => item.id === taskId);
   if (!task || task.completed || state.gameOver) return;
 
@@ -1124,6 +1171,20 @@ if (customGoalForm) {
     syncCustomGoalForm();
   });
 }
+
+document.getElementById("signupBtn").addEventListener("click", async () => {
+  await signUp(
+    document.getElementById("email").value,
+    document.getElementById("password").value,
+  );
+});
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  await signIn(
+    document.getElementById("email").value,
+    document.getElementById("password").value,
+  );
+});
 
 resetBtn.addEventListener("click", resetGame);
 if (resetGoalsBtn) {

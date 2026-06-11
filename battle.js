@@ -12,7 +12,14 @@ const DUNGEON_TOTAL_FLOORS = 3;
 const DUNGEON_PARTIAL_HEAL_PERCENT = 0.2;
 const BASE_PLAYER_MAX_HEALTH = 500;
 const PLAYER_HEALTH_LEVEL_MODIFIER = 0.08;
-const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
+const CONFETTI_COLORS = [
+  "#ff6b6b",
+  "#ffd93d",
+  "#6bcB77",
+  "#4d96ff",
+  "#ff9f1c",
+  "#f15bb5",
+];
 
 // Optional sprite paths for battle avatars. Leave paths empty for text fallback.
 const SPRITE_ASSETS = {
@@ -29,7 +36,13 @@ const SPRITE_ASSETS = {
 const PLAYER_FALLBACK_AVATAR = "(o^.^o)";
 
 let playerProgress = { level: 1, exp: 0, checkins: 0 };
-let playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+let playerState = {
+  physical: 70,
+  mental: 70,
+  social: 70,
+  intellectual: 70,
+  spiritual: 70,
+};
 let battleState = {
   playerHealth: 500,
   playerMaxHealth: BASE_PLAYER_MAX_HEALTH,
@@ -64,7 +77,10 @@ const attributeSynergies = {
     bonusMultiplier: SYNERGY_BONUS_MULTIPLIER,
     applyEffect: () => {
       const restored = getScaledSynergyEnergyRestore();
-      playerState.intellectual = Math.min(100, playerState.intellectual + restored);
+      playerState.intellectual = Math.min(
+        100,
+        playerState.intellectual + restored,
+      );
       addBattleLog(`Synergy effect: Restored ${restored} Intellectual energy.`);
     },
   },
@@ -74,7 +90,10 @@ const attributeSynergies = {
     applyEffect: () => {
       const heal = getScaledSynergyHeal();
       const before = battleState.playerHealth;
-      battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + heal);
+      battleState.playerHealth = Math.min(
+        battleState.playerMaxHealth,
+        battleState.playerHealth + heal,
+      );
       const healed = battleState.playerHealth - before;
       if (healed > 0) {
         addBattleLog(`Synergy effect: Healed ${healed} health.`);
@@ -177,11 +196,11 @@ function getEnemySpritePath(enemyName) {
 }
 
 function getScaledSynergyEnergyRestore() {
-  return Math.min(12, 4 + Math.floor(playerProgress.level / 5));
+  return Math.min(12, 4 + Math.floor(state.level / 5));
 }
 
 function getScaledSynergyHeal() {
-  const byLevel = 16 + playerProgress.level * 2;
+  const byLevel = 16 + state.level * 2;
   const byMaxHealth = Math.round(battleState.playerMaxHealth * 0.08);
   return Math.max(byLevel, byMaxHealth);
 }
@@ -192,17 +211,23 @@ function expRequiredForLevel(level) {
 
 function calculatePlayerMaxHealth(level) {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  return Math.round(BASE_PLAYER_MAX_HEALTH * (1 + (safeLevel - 1) * PLAYER_HEALTH_LEVEL_MODIFIER));
+  return Math.round(
+    BASE_PLAYER_MAX_HEALTH *
+      (1 + (safeLevel - 1) * PLAYER_HEALTH_LEVEL_MODIFIER),
+  );
 }
 
 function syncPlayerMaxHealthWithLevel() {
   const previousMax = battleState.playerMaxHealth;
-  const newMax = calculatePlayerMaxHealth(playerProgress.level);
+  const newMax = calculatePlayerMaxHealth(state.level);
   const healthDelta = newMax - previousMax;
 
   battleState.playerMaxHealth = newMax;
   if (healthDelta > 0) {
-    battleState.playerHealth = Math.min(newMax, battleState.playerHealth + healthDelta);
+    battleState.playerHealth = Math.min(
+      newMax,
+      battleState.playerHealth + healthDelta,
+    );
   } else if (battleState.playerHealth > newMax) {
     battleState.playerHealth = newMax;
   }
@@ -224,7 +249,13 @@ function loadPlayerData() {
     try {
       playerState = JSON.parse(stateRaw);
     } catch {
-      playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+      playerState = {
+        physical: 70,
+        mental: 70,
+        social: 70,
+        intellectual: 70,
+        spiritual: 70,
+      };
     }
   }
 
@@ -237,8 +268,12 @@ function savePlayerData() {
 }
 
 function rainConfetti(options = {}) {
-  const count = Number.isFinite(options.count) ? Math.max(20, Math.floor(options.count)) : 110;
-  const baseDuration = Number.isFinite(options.duration) ? Math.max(900, Math.floor(options.duration)) : 2200;
+  const count = Number.isFinite(options.count)
+    ? Math.max(20, Math.floor(options.count))
+    : 110;
+  const baseDuration = Number.isFinite(options.duration)
+    ? Math.max(900, Math.floor(options.duration))
+    : 2200;
 
   const container = document.createElement("div");
   container.setAttribute("aria-hidden", "true");
@@ -263,7 +298,8 @@ function rainConfetti(options = {}) {
     piece.style.left = `${Math.random() * 100}%`;
     piece.style.width = `${size}px`;
     piece.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.55)}px`;
-    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    piece.style.background =
+      CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
     piece.style.opacity = String(0.8 + Math.random() * 0.2);
     piece.style.borderRadius = Math.random() > 0.5 ? "1px" : "50%";
 
@@ -271,14 +307,16 @@ function rainConfetti(options = {}) {
     piece.animate(
       [
         { transform: "translate3d(0, -12px, 0) rotate(0deg)" },
-        { transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)` },
+        {
+          transform: `translate3d(${drift}px, ${window.innerHeight + 50}px, 0) rotate(${rotation}deg)`,
+        },
       ],
       {
         duration,
         delay,
         easing: "cubic-bezier(0.22, 0.7, 0.3, 1)",
         fill: "forwards",
-      }
+      },
     );
   }
 
@@ -300,7 +338,8 @@ function showLevelUpBanner(levelsGained = 1) {
   banner.style.transform = "translate(-50%, -20px) scale(0.96)";
   banner.style.padding = "0.75rem 1.25rem";
   banner.style.borderRadius = "999px";
-  banner.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  banner.style.fontFamily =
+    "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
   banner.style.fontSize = "clamp(1.1rem, 2.8vw, 1.7rem)";
   banner.style.letterSpacing = "0.08em";
   banner.style.color = "#ffffff";
@@ -323,7 +362,7 @@ function showLevelUpBanner(levelsGained = 1) {
       duration: 1550,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       fill: "forwards",
-    }
+    },
   );
 
   setTimeout(() => {
@@ -357,7 +396,8 @@ function showCombatText({ target, value, type = "damage" }) {
   text.style.left = "50%";
   text.style.top = "18%";
   text.style.transform = "translate(-50%, 0) scale(0.9)";
-  text.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+  text.style.fontFamily =
+    "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
   text.style.fontSize = "clamp(1.05rem, 2.5vw, 1.55rem)";
   text.style.letterSpacing = "0.05em";
   text.style.fontWeight = "700";
@@ -380,7 +420,11 @@ function showCombatText({ target, value, type = "damage" }) {
   text.animate(
     [
       { opacity: 0, transform: "translate(-50%, 10px) scale(0.85)" },
-      { opacity: 1, transform: "translate(-50%, -4px) scale(1.02)", offset: 0.22 },
+      {
+        opacity: 1,
+        transform: "translate(-50%, -4px) scale(1.02)",
+        offset: 0.22,
+      },
       { opacity: 1, transform: "translate(-50%, -18px) scale(1)", offset: 0.7 },
       { opacity: 0, transform: "translate(-50%, -34px) scale(1.03)" },
     ],
@@ -388,7 +432,7 @@ function showCombatText({ target, value, type = "damage" }) {
       duration: 1050,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       fill: "forwards",
-    }
+    },
   );
 
   setTimeout(() => {
@@ -412,7 +456,8 @@ function showEnemyIntentText(message, options = {}) {
     text.style.left = "50%";
     text.style.top = "8%";
     text.style.transform = "translate(-50%, 0) scale(0.95)";
-    text.style.fontFamily = "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
+    text.style.fontFamily =
+      "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif";
     text.style.fontSize = "clamp(0.82rem, 2.1vw, 1.05rem)";
     text.style.letterSpacing = "0.04em";
     text.style.fontWeight = "700";
@@ -444,7 +489,7 @@ function showEnemyIntentText(message, options = {}) {
       duration: 250,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       fill: "forwards",
-    }
+    },
   );
 }
 
@@ -460,12 +505,21 @@ function clearEnemyIntentText() {
 function planNextEnemyIntent() {
   if (!battleState.currentEnemy) return;
 
-  const attributes = ["physical", "mental", "social", "intellectual", "spiritual"];
+  const attributes = [
+    "physical",
+    "mental",
+    "social",
+    "intellectual",
+    "spiritual",
+  ];
   const specialMove = enemySpecialMoves[battleState.currentEnemy.name];
 
   if (battleState.pendingEnemySpecial && specialMove) {
-    const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
-    let damage = Math.round(calculatePetStats(randomAttr) * specialMove.multiplier);
+    const randomAttr =
+      attributes[Math.floor(Math.random() * attributes.length)];
+    let damage = Math.round(
+      calculatePetStats(randomAttr) * specialMove.multiplier,
+    );
 
     if (battleState.enemyStatus.weakenedTurns > 0) {
       damage = Math.round(damage * 0.5);
@@ -509,7 +563,7 @@ function planNextEnemyIntent() {
 
 function calculatePetStats(attribute) {
   const baseAttribute = playerState[attribute] || 70;
-  return Math.round((baseAttribute / 100) * playerProgress.level * 20);
+  return Math.round((baseAttribute / 100) * state.level * 20);
 }
 
 function getUnlockedMonsterIndexForLevel(level) {
@@ -521,10 +575,13 @@ function getUnlockedMonsterIndexForLevel(level) {
 }
 
 function generateMonster() {
-  const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(playerProgress.level);
+  const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(state.level);
   let selectedIndex = strongestUnlockedIndex;
 
-  if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+  if (
+    battleState.dungeon.active &&
+    battleState.dungeon.floor < battleState.dungeon.totalFloors
+  ) {
     if (strongestUnlockedIndex > 0) {
       selectedIndex = Math.floor(Math.random() * strongestUnlockedIndex);
     }
@@ -532,7 +589,7 @@ function generateMonster() {
 
   const selected = monsters[selectedIndex];
 
-  const health = Math.round(selected.baseHealth * (1 + playerProgress.level * 0.1));
+  const health = Math.round(selected.baseHealth * (1 + state.level * 0.1));
 
   return {
     name: selected.name,
@@ -568,24 +625,47 @@ function getAttackDamage(attribute) {
 function applyCriticalStatusEffect(attribute) {
   switch (attribute) {
     case "physical":
-      battleState.enemyStatus.stunnedTurns = Math.max(battleState.enemyStatus.stunnedTurns, 1);
+      battleState.enemyStatus.stunnedTurns = Math.max(
+        battleState.enemyStatus.stunnedTurns,
+        1,
+      );
       addBattleLog("Critical effect: Stun! Enemy loses its next turn.");
       break;
     case "mental":
-      battleState.enemyStatus.weakenedTurns = Math.max(battleState.enemyStatus.weakenedTurns, 2);
-      addBattleLog("Critical effect: Mind Break! Enemy damage is reduced for 2 turns.");
+      battleState.enemyStatus.weakenedTurns = Math.max(
+        battleState.enemyStatus.weakenedTurns,
+        2,
+      );
+      addBattleLog(
+        "Critical effect: Mind Break! Enemy damage is reduced for 2 turns.",
+      );
       break;
     case "social":
-      battleState.enemyStatus.vulnerableTurns = Math.max(battleState.enemyStatus.vulnerableTurns, 2);
-      addBattleLog("Critical effect: Exposed! Enemy takes extra damage for 2 turns.");
+      battleState.enemyStatus.vulnerableTurns = Math.max(
+        battleState.enemyStatus.vulnerableTurns,
+        2,
+      );
+      addBattleLog(
+        "Critical effect: Exposed! Enemy takes extra damage for 2 turns.",
+      );
       break;
     case "intellectual":
-      battleState.playerStatus.focusTurns = Math.max(battleState.playerStatus.focusTurns, 2);
-      addBattleLog("Critical effect: Focus! Your attacks deal extra damage for 2 turns.");
+      battleState.playerStatus.focusTurns = Math.max(
+        battleState.playerStatus.focusTurns,
+        2,
+      );
+      addBattleLog(
+        "Critical effect: Focus! Your attacks deal extra damage for 2 turns.",
+      );
       break;
     case "spiritual":
-      battleState.playerStatus.regenTurns = Math.max(battleState.playerStatus.regenTurns, 3);
-      addBattleLog("Critical effect: Regeneration! You recover health for 3 turns.");
+      battleState.playerStatus.regenTurns = Math.max(
+        battleState.playerStatus.regenTurns,
+        3,
+      );
+      addBattleLog(
+        "Critical effect: Regeneration! You recover health for 3 turns.",
+      );
       break;
     default:
       break;
@@ -597,7 +677,7 @@ function applyStartOfPlayerTurnEffects() {
     const before = battleState.playerHealth;
     battleState.playerHealth = Math.min(
       battleState.playerMaxHealth,
-      battleState.playerHealth + PLAYER_REGEN_AMOUNT
+      battleState.playerHealth + PLAYER_REGEN_AMOUNT,
     );
     const healed = battleState.playerHealth - before;
     battleState.playerStatus.regenTurns -= 1;
@@ -633,10 +713,15 @@ function getDungeonStatusText() {
 }
 
 function applyDungeonRecovery() {
-  const baseRecovery = Math.round(battleState.playerMaxHealth * DUNGEON_PARTIAL_HEAL_PERCENT);
+  const baseRecovery = Math.round(
+    battleState.playerMaxHealth * DUNGEON_PARTIAL_HEAL_PERCENT,
+  );
   const recovery = Math.max(1, baseRecovery);
   const before = battleState.playerHealth;
-  battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + recovery);
+  battleState.playerHealth = Math.min(
+    battleState.playerMaxHealth,
+    battleState.playerHealth + recovery,
+  );
   const healed = battleState.playerHealth - before;
   addBattleLog(`Dungeon recovery: +${healed} health for the next floor.`);
 }
@@ -651,18 +736,31 @@ function renderBattleLog() {
 
 function renderBattleUI() {
   const playerAvatar = document.getElementById("playerPetAvatar");
-  applyAvatarSpriteWithFallback(playerAvatar, SPRITE_ASSETS.player, PLAYER_FALLBACK_AVATAR);
+  applyAvatarSpriteWithFallback(
+    playerAvatar,
+    SPRITE_ASSETS.player,
+    PLAYER_FALLBACK_AVATAR,
+  );
 
-  document.getElementById("playerLevel").textContent = `Level ${playerProgress.level}`;
-  document.getElementById("playerPhysical").textContent = calculatePetStats("physical");
-  document.getElementById("playerMental").textContent = calculatePetStats("mental");
-  document.getElementById("playerSocial").textContent = calculatePetStats("social");
-  document.getElementById("playerIntellectual").textContent = calculatePetStats("intellectual");
-  document.getElementById("playerSpiritual").textContent = calculatePetStats("spiritual");
+  document.getElementById("playerLevel").textContent = `Level ${state.level}`;
+  document.getElementById("playerPhysical").textContent =
+    calculatePetStats("physical");
+  document.getElementById("playerMental").textContent =
+    calculatePetStats("mental");
+  document.getElementById("playerSocial").textContent =
+    calculatePetStats("social");
+  document.getElementById("playerIntellectual").textContent =
+    calculatePetStats("intellectual");
+  document.getElementById("playerSpiritual").textContent =
+    calculatePetStats("spiritual");
 
-  const playerHealthPercent = Math.round((battleState.playerHealth / battleState.playerMaxHealth) * 100);
-  document.getElementById("playerHealthFill").style.width = `${playerHealthPercent}%`;
-  document.getElementById("playerHealth").textContent = `Health: ${Math.max(0, battleState.playerHealth)} / ${battleState.playerMaxHealth}`;
+  const playerHealthPercent = Math.round(
+    (battleState.playerHealth / battleState.playerMaxHealth) * 100,
+  );
+  document.getElementById("playerHealthFill").style.width =
+    `${playerHealthPercent}%`;
+  document.getElementById("playerHealth").textContent =
+    `Health: ${Math.max(0, battleState.playerHealth)} / ${battleState.playerMaxHealth}`;
 
   if (battleState.currentEnemy) {
     const enemyAvatar = document.getElementById("enemyAvatar");
@@ -670,16 +768,24 @@ function renderBattleUI() {
     applyAvatarSpriteWithFallback(
       enemyAvatar,
       getEnemySpritePath(battleState.currentEnemy.name),
-      enemyFallbackAvatar
+      enemyFallbackAvatar,
     );
 
-    document.getElementById("enemyName").textContent = battleState.currentEnemy.name;
-    const enemyHealthPercent = Math.round((battleState.currentEnemy.health / battleState.currentEnemy.maxHealth) * 100);
-    document.getElementById("enemyHealthFill").style.width = `${enemyHealthPercent}%`;
-    document.getElementById("enemyHealth").textContent = `Health: ${Math.max(0, battleState.currentEnemy.health)} / ${battleState.currentEnemy.maxHealth}`;
+    document.getElementById("enemyName").textContent =
+      battleState.currentEnemy.name;
+    const enemyHealthPercent = Math.round(
+      (battleState.currentEnemy.health / battleState.currentEnemy.maxHealth) *
+        100,
+    );
+    document.getElementById("enemyHealthFill").style.width =
+      `${enemyHealthPercent}%`;
+    document.getElementById("enemyHealth").textContent =
+      `Health: ${Math.max(0, battleState.currentEnemy.health)} / ${battleState.currentEnemy.maxHealth}`;
   }
 
-  document.getElementById("battleStatus").textContent = battleState.isPlayerTurn ? "Your Turn" : "Enemy Attacking...";
+  document.getElementById("battleStatus").textContent = battleState.isPlayerTurn
+    ? "Your Turn"
+    : "Enemy Attacking...";
   document.getElementById("comboSeedHint").textContent = getComboSeedHint();
   document.getElementById("dungeonStatus").textContent = getDungeonStatusText();
 
@@ -729,11 +835,16 @@ function performAction(attribute) {
   }
 
   playerState[attribute] = Math.max(0, playerState[attribute] - cost);
-  battleState.currentEnemy.health = Math.max(0, battleState.currentEnemy.health - damage);
+  battleState.currentEnemy.health = Math.max(
+    0,
+    battleState.currentEnemy.health - damage,
+  );
   showCombatText({ target: "enemy", value: damage, type: "damage" });
 
   if (isCritical) {
-    addBattleLog(`Critical hit! You used ${attribute} and dealt ${damage} damage!`);
+    addBattleLog(
+      `Critical hit! You used ${attribute} and dealt ${damage} damage!`,
+    );
     applyCriticalStatusEffect(attribute);
   } else {
     addBattleLog(`You used ${attribute}! Dealt ${damage} damage.`);
@@ -792,7 +903,10 @@ function enemyTurn() {
       battleState.isDefending = false;
     }
 
-    battleState.playerHealth = Math.max(0, battleState.playerHealth - actualDamage);
+    battleState.playerHealth = Math.max(
+      0,
+      battleState.playerHealth - actualDamage,
+    );
     showCombatText({ target: "player", value: actualDamage, type: "damage" });
 
     battleState.pendingEnemyAttack = null;
@@ -817,45 +931,53 @@ function endBattle(playerWon) {
   actionButtons.style.opacity = "0.5";
 
   if (playerWon) {
-    const levelBefore = playerProgress.level;
+    const levelBefore = state.level;
     const baseExp = Math.round(100 * battleState.currentEnemy.difficulty);
     const bonus = Math.round(baseExp * 0.5);
     const totalExp = baseExp + bonus;
 
-    playerProgress.exp += totalExp;
-    while (playerProgress.exp >= expRequiredForLevel(playerProgress.level)) {
-      playerProgress.exp -= expRequiredForLevel(playerProgress.level);
-      playerProgress.level += 1;
-    }
+    addExp(totalExp);
+    playerProgress.level = state.level;
 
     syncPlayerMaxHealthWithLevel();
-    const levelsGained = playerProgress.level - levelBefore;
+    const levelsGained = state.level - levelBefore;
     if (levelsGained > 0) {
       rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
       showLevelUpBanner(levelsGained);
-      addBattleLog(`Level up! Max health increased to ${battleState.playerMaxHealth}.`);
+      addBattleLog(
+        `Level up! Max health increased to ${battleState.playerMaxHealth}.`,
+      );
     }
 
     battleState.lastBattleWon = true;
 
-    if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+    if (
+      battleState.dungeon.active &&
+      battleState.dungeon.floor < battleState.dungeon.totalFloors
+    ) {
       applyDungeonRecovery();
     }
 
     addBattleLog(`Victory! Gained ${totalExp} EXP!`);
     if (battleState.dungeon.active) {
       if (battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
-        document.getElementById("rewardsTitle").textContent = "Dungeon Cleared!";
-        document.getElementById("rewardExp").textContent = `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
-        document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+        document.getElementById("rewardsTitle").textContent =
+          "Dungeon Cleared!";
+        document.getElementById("rewardExp").textContent =
+          `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+        document.getElementById("nextBattleBtn").textContent =
+          "Return to Arena";
       } else {
         document.getElementById("rewardsTitle").textContent = "Floor Cleared!";
-        document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
-        document.getElementById("nextBattleBtn").textContent = "Next Dungeon Floor";
+        document.getElementById("rewardExp").textContent =
+          `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
+        document.getElementById("nextBattleBtn").textContent =
+          "Next Dungeon Floor";
       }
     } else {
       document.getElementById("rewardsTitle").textContent = "Battle Won!";
-      document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+      document.getElementById("rewardExp").textContent =
+        `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
       document.getElementById("nextBattleBtn").textContent = "Next Battle";
     }
   } else {
@@ -863,13 +985,15 @@ function endBattle(playerWon) {
     addBattleLog("Defeated! Your pet needs rest.");
     if (battleState.dungeon.active) {
       document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
-      document.getElementById("rewardExp").textContent = "Dungeon run ended. Start a new dungeon to reset and try again.";
+      document.getElementById("rewardExp").textContent =
+        "Dungeon run ended. Start a new dungeon to reset and try again.";
       document.getElementById("nextBattleBtn").textContent = "Return to Arena";
       battleState.dungeon.active = false;
       battleState.dungeon.floor = 0;
     } else {
       document.getElementById("rewardsTitle").textContent = "Defeated!";
-      document.getElementById("rewardExp").textContent = `Battle Lost. Return to wellness!`;
+      document.getElementById("rewardExp").textContent =
+        `Battle Lost. Return to wellness!`;
       document.getElementById("nextBattleBtn").textContent = "Next Battle";
     }
   }
@@ -891,7 +1015,11 @@ function startNewBattle(options = {}) {
   battleState.isDefending = false;
   battleState.pendingEnemyAttack = null;
   battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
-  battleState.enemyStatus = { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
+  battleState.enemyStatus = {
+    stunnedTurns: 0,
+    weakenedTurns: 0,
+    vulnerableTurns: 0,
+  };
   battleState.lastPlayerAttribute = null;
   battleState.pendingEnemySpecial = null;
   clearEnemyIntentText();
@@ -918,13 +1046,19 @@ function startDungeonRun() {
 
 function handleNextBattle() {
   if (battleState.dungeon.active) {
-    if (battleState.lastBattleWon && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+    if (
+      battleState.lastBattleWon &&
+      battleState.dungeon.floor < battleState.dungeon.totalFloors
+    ) {
       battleState.dungeon.floor += 1;
       startNewBattle({ preserveHealth: true });
       return;
     }
 
-    if (battleState.lastBattleWon && battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
+    if (
+      battleState.lastBattleWon &&
+      battleState.dungeon.floor >= battleState.dungeon.totalFloors
+    ) {
       battleState.dungeon.active = false;
       battleState.dungeon.floor = 0;
       startNewBattle({ preserveHealth: false });
@@ -935,14 +1069,28 @@ function handleNextBattle() {
   startNewBattle({ preserveHealth: false });
 }
 
-document.getElementById("physicalAttackBtn").addEventListener("click", () => performAction("physical"));
-document.getElementById("mentalAttackBtn").addEventListener("click", () => performAction("mental"));
-document.getElementById("socialAttackBtn").addEventListener("click", () => performAction("social"));
-document.getElementById("intellectualAttackBtn").addEventListener("click", () => performAction("intellectual"));
-document.getElementById("spiritualAttackBtn").addEventListener("click", () => performAction("spiritual"));
+document
+  .getElementById("physicalAttackBtn")
+  .addEventListener("click", () => performAction("physical"));
+document
+  .getElementById("mentalAttackBtn")
+  .addEventListener("click", () => performAction("mental"));
+document
+  .getElementById("socialAttackBtn")
+  .addEventListener("click", () => performAction("social"));
+document
+  .getElementById("intellectualAttackBtn")
+  .addEventListener("click", () => performAction("intellectual"));
+document
+  .getElementById("spiritualAttackBtn")
+  .addEventListener("click", () => performAction("spiritual"));
 document.getElementById("defendBtn").addEventListener("click", performDefend);
-document.getElementById("startDungeonBtn").addEventListener("click", startDungeonRun);
-document.getElementById("nextBattleBtn").addEventListener("click", handleNextBattle);
+document
+  .getElementById("startDungeonBtn")
+  .addEventListener("click", startDungeonRun);
+document
+  .getElementById("nextBattleBtn")
+  .addEventListener("click", handleNextBattle);
 
 loadPlayerData();
 startNewBattle();
