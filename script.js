@@ -3,7 +3,13 @@ import {
   saveGameState,
   saveToCloud,
   getPlayerId,
+  loadLegacyState,
 } from "./database.js";
+import { signUp, signIn } from "./database.js";
+import { getCurrentUser } from "./database.js";
+
+const user = await getCurrentUser();
+console.log("CURRENT USER:", user);
 import { getSelectedAvatarForLevel } from "./avatar-selection.js";
 
 async function testDatabase() {
@@ -30,20 +36,58 @@ const initialState = {
 
 const state = { ...initialState };
 
-async function syncCloudSave() {
-  const cloudData = await loadLatestState();
+let hasLoadedCloudSave = false;
+
+export async function syncCloudSave() {
+  // Prevent multiple loads (this is what was causing your level rollback)
+  if (hasLoadedCloudSave) return;
+  hasLoadedCloudSave = true;
+
+  let cloudData = await loadLatestState();
+
+  // No modern save found → try legacy
+  if (!cloudData) {
+    cloudData = await loadLegacyState();
+
+    // Found legacy save → migrate it
+    if (cloudData) {
+      console.log("Migrating legacy save");
+
+      await saveToCloud({
+        physical: cloudData.physical,
+        mental: cloudData.mental,
+        social: cloudData.social,
+        intellectual: cloudData.intellectual,
+        spiritual: cloudData.spiritual,
+        level: cloudData.level,
+        exp: cloudData.exp,
+        checkins: cloudData.checkins,
+      });
+    }
+  }
 
   if (cloudData) {
+    console.log("Loading state:", cloudData);
+
     Object.keys(cloudData).forEach((key) => {
       if (key in state && cloudData[key] !== null) {
         state[key] = cloudData[key];
       }
     });
+
+    console.log("State after cloud sync:", state);
   }
 }
+
+function syncProgressModels() {
+  // nothing to sync anymore
+  // state is now the single source of truth
+}
+
 async function initializeGame() {
   await syncCloudSave();
-  console.log("Cloud save loaded:", state);
+  syncProgressModels();
+  console.log("State after cloud sync:", state);
 }
 
 const wellnessKeys = [
@@ -78,12 +122,7 @@ const DEFAULT_CATEGORY_POINTS = {
   spiritual: 18,
 };
 initializeGame();
-testDatabase();
-console.log("Before:", state.physical);
-
-state.physical = 20;
-
-console.log("After:", state.physical);
+// testDatabase();
 
 const taskPools = {
   physical: [
@@ -435,7 +474,9 @@ const customGoalSubmit = document.getElementById("customGoalSubmit");
 const customGoalHint = document.getElementById("customGoalHint");
 const recommendationText = document.getElementById("recommendationText");
 const recommendationButton = document.getElementById("recommendationButton");
-const useRecommendationButton = document.getElementById("useRecommendationButton");
+const useRecommendationButton = document.getElementById(
+  "useRecommendationButton",
+);
 
 let activeCategory = "physical";
 let currentRecommendation = "";
@@ -465,8 +506,8 @@ async function saveProgress() {
     }),
   );
   saveWellnessState();
-  const playerId = await getPlayerId();
-  await saveToCloud(state, playerId);
+  await saveToCloud(state);
+  console.log("SAVE PROGRESS CALLED WITH", structuredClone(state));
 }
 
 function saveWellnessState() {
@@ -636,6 +677,8 @@ function showLevelUpBanner(levelsGained = 1) {
 }
 
 function addExp(amount) {
+  console.log("🔥 addExp CALLED");
+  console.log("ADD EXP START", structuredClone(state));
   if (!Number.isFinite(amount) || amount <= 0) return;
 
   state.exp += Math.floor(amount);
@@ -650,8 +693,9 @@ function addExp(amount) {
     rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
     showLevelUpBanner(levelsGained);
   }
+  console.log("AFTER LEVEL CHECK", structuredClone(state));
 
-  saveProgress();
+  saveToCloud(state);
   render();
 }
 
@@ -837,13 +881,15 @@ function getGoalRecommendation(category) {
   }
 
   const fallback = shuffleCopy(pool).find((task) => task.title);
-  return (
-    fallback?.title || `Add one extra ${category} goal for today.`
-  );
+  return fallback?.title || `Add one extra ${category} goal for today.`;
 }
 
 function updateRecommendation() {
-  if (!recommendationText || !recommendationButton || !useRecommendationButton) {
+  if (
+    !recommendationText ||
+    !recommendationButton ||
+    !useRecommendationButton
+  ) {
     return;
   }
 
@@ -934,10 +980,22 @@ function moodText(avg) {
   if (avg >= 40) return "Your pet is getting worried. Time for a check-in.";
   return "Your pet feels neglected. Do a wellness action now.";
 }
+
+const avatarLevelMap = [
+  { minLevel: 1, src: "Avatar/Default.png", alt: "The Spud Bud" },
+  { minLevel: 5, src: "Avatar/Sprout.png", alt: "The Spud Sprout" },
+  { minLevel: 10, src: "Avatar/Farmer.png", alt: "The Spud Farmer" },
+  { minLevel: 15, src: "Avatar/Gym.png", alt: "The Gym Spud" },
+  { minLevel: 20, src: "Avatar/Sleepwear.png", alt: "The Sleepy Spud" },
+  { minLevel: 25, src: "Avatar/Old_Money.png", alt: "The Loaded Spud" },
+];
+
 function updatePetAvatar() {
   if (!petAvatar) return;
 
-  const currentAvatar = getSelectedAvatarForLevel(state.level);
+  const currentAvatar =
+    avatarLevelMap.filter((item) => state.level >= item.minLevel).pop() ||
+    avatarLevelMap[0];
 
   petAvatar.src = currentAvatar.src;
   petAvatar.alt = currentAvatar.alt;
@@ -973,6 +1031,7 @@ function render() {
 }
 
 function applyAction(action) {
+  console.log("BEFORE ACTION", JSON.stringify(state));
   if (state.gameOver) return;
 
   const boosts = {
@@ -996,16 +1055,17 @@ function applyAction(action) {
 }
 
 function completeTask(taskId, sourceButton) {
+  console.log("BEFORE TASK", JSON.stringify(state));
   const task = dailyTasks.find((item) => item.id === taskId);
   if (!task || task.completed || state.gameOver) return;
 
   task.completed = true;
-    // start the 12-hour cooldown for this task when it's completed
-    try {
-      setTaskExpiry(task.id);
-    } catch (e) {
-      // ignore if timer helpers not yet available
-    }
+  // start the 12-hour cooldown for this task when it's completed
+  try {
+    setTaskExpiry(task.id);
+  } catch (e) {
+    // ignore if timer helpers not yet available
+  }
   applyAction(task.category);
   addExp(task.points);
   saveDailyTasks();
@@ -1039,7 +1099,11 @@ function addCustomGoal(category, title) {
     isCustom: true,
   };
   dailyTasks.push(newTask);
-  try { ensureExpiry(newTask.id); } catch (e) { /* ignore */ }
+  try {
+    ensureExpiry(newTask.id);
+  } catch (e) {
+    /* ignore */
+  }
 
   saveDailyTasks();
   renderTaskList();
@@ -1057,7 +1121,11 @@ function resetGoals() {
   isCustomGoalPanelOpen = false;
   saveDailyTasks();
   // ensure every generated task has a 12-hour expiry started
-  try { dailyTasks.forEach((t) => ensureExpiry(t.id)); } catch (e) { /* ignore */ }
+  try {
+    dailyTasks.forEach((t) => ensureExpiry(t.id));
+  } catch (e) {
+    /* ignore */
+  }
   renderTaskList();
   renderTabs();
 }
@@ -1129,6 +1197,20 @@ if (customGoalForm) {
   });
 }
 
+document.getElementById("signupBtn").addEventListener("click", async () => {
+  await signUp(
+    document.getElementById("email").value,
+    document.getElementById("password").value,
+  );
+});
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  await signIn(
+    document.getElementById("email").value,
+    document.getElementById("password").value,
+  );
+});
+
 resetBtn.addEventListener("click", resetGame);
 if (resetGoalsBtn) {
   resetGoalsBtn.addEventListener("click", resetGoals);
@@ -1158,11 +1240,11 @@ function getRemainingMs(taskId) {
 }
 
 function formatRemaining(ms) {
-  if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
+  if (!Number.isFinite(ms) || ms <= 0) return "00:00:00";
   const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-  const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-  const secs = String(totalSec % 60).padStart(2, '0');
+  const hrs = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+  const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+  const secs = String(totalSec % 60).padStart(2, "0");
   return `${hrs}:${mins}:${secs}`;
 }
 
@@ -1172,20 +1254,18 @@ function handleTaskExpiry(taskId) {
 
   const oldTask = dailyTasks[taskIndex];
   const category = oldTask.category;
-  
+
   // Get existing task titles in this category to avoid duplicates
   const existingTitles = new Set(
-    dailyTasks
-      .filter((t) => t.category === category)
-      .map((t) => t.title),
+    dailyTasks.filter((t) => t.category === category).map((t) => t.title),
   );
-  
+
   // Find a new task from the pool that doesn't already exist
   const pool = taskPools[category] ?? [];
   const availableTasks = shuffleCopy(pool).filter(
     (t) => !existingTitles.has(t.title),
   );
-  
+
   // If we found a new task, replace the old one; otherwise just reset it
   if (availableTasks.length > 0) {
     const newTaskData = availableTasks[0];
@@ -1205,22 +1285,22 @@ function handleTaskExpiry(taskId) {
     dailyTasks[taskIndex].completed = false;
     setTaskExpiry(taskId);
   }
-  
+
   saveDailyTasks();
   renderTaskList();
   renderTabs();
 }
 
 function updateTimers() {
-  document.querySelectorAll('[data-task-id]').forEach((card) => {
-    const id = card.getAttribute('data-task-id');
+  document.querySelectorAll("[data-task-id]").forEach((card) => {
+    const id = card.getAttribute("data-task-id");
     const task = dailyTasks.find((t) => t.id === id);
-    const timerEl = card.querySelector('.timer');
-    const statusEl = card.querySelector('.status');
+    const timerEl = card.querySelector(".timer");
+    const statusEl = card.querySelector(".status");
 
     if (!task) {
-      if (timerEl) timerEl.textContent = '';
-      if (statusEl) statusEl.textContent = '';
+      if (timerEl) timerEl.textContent = "";
+      if (statusEl) statusEl.textContent = "";
       return;
     }
 
@@ -1231,14 +1311,14 @@ function updateTimers() {
         // restart cooldown after refresh so UI shows full window
         setTaskExpiry(id);
         if (timerEl) timerEl.textContent = formatRemaining(TWELVE_HOURS);
-        if (statusEl) statusEl.textContent = 'Available';
+        if (statusEl) statusEl.textContent = "Available";
       } else {
         if (timerEl) timerEl.textContent = formatRemaining(rem);
-        if (statusEl) statusEl.textContent = 'Available in';
+        if (statusEl) statusEl.textContent = "Available in";
       }
     } else {
-      if (timerEl) timerEl.textContent = '';
-      if (statusEl) statusEl.textContent = 'Available';
+      if (timerEl) timerEl.textContent = "";
+      if (statusEl) statusEl.textContent = "Available";
     }
   });
 }
