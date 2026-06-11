@@ -830,7 +830,7 @@ body {
   border: 2px solid var(--line);
   padding: 8px 10px;
   background: var(--panel);
-}
+} 
 
 .reflex-game-area {
   padding: 24px 30px 12px;
@@ -840,17 +840,12 @@ body {
   position: relative;
   height: 280px;
   border: 3px solid var(--line);
-  background: linear-gradient(180deg, #f4f4f4 0%, #eaeaea 100%);
+  background-image: url('Images/tablecloth.png'); 
+  background-size: 100%;
   overflow: hidden;
 }
 
-.reflex-lane-mark {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  border-top: 2px dashed #9c9c9c;
-}
+
 
 .lane-1 {
   top: 20%;
@@ -899,6 +894,17 @@ body {
   border: 2px solid #111;
   border-radius: 4px;
   z-index: 2;
+}
+
+/* Fallback image inside obstacle elements for reliable sprite rendering */
+.reflex-obstacle img.reflex-obstacle-img {
+  width: 200px;
+  height: 200px;
+  margin: -75px 0 0 -75px; /* Centers the image over the obstacle */
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
 }
 
 .reflex-obstacle--double {
@@ -1847,4 +1853,33 @@ body {
   .add-goal-row {
     grid-template-columns: 1fr;
   }
+
+  .reflex-track {
+  position: relative; 
+  overflow: hidden;    /* Hides the forks before they enter the screen */
+  width: 100%;         /* Or a fixed width like 600px */
+  height: 300px;       /* Whatever your track layout height is */
+  background-color: #222; /* Temporary background color to verify boundaries */
+}
+
+/* 2. Style the obstacles so they respect the dynamic JS coordinates */
+.reflex-obstacle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30px;         /* Must match OBSTACLE_SIZE in your JavaScript */
+  
+  /* Image rendering con  straints */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  
+  /* Fallback visibility flag to isolate path vs rendering bugs */
+  background-color: rgba(255, 0, 0, 0.4); 
+}
+
+.reflex-game-area{
+background-color:red;
+}
+
 }

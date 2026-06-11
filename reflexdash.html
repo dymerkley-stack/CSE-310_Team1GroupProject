@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reflex Dash</title>
     <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="reflexdash.js" defer></script>
   </head>
   <body>
     <main class="wireframe" aria-live="polite">
@@ -30,9 +31,7 @@
 
       <section class="reflex-game-area">
         <div id="reflexTrack" class="reflex-track" role="application" aria-label="Reflex Dash game area">
-          <div class="reflex-lane-mark lane-1"></div>
-          <div class="reflex-lane-mark lane-2"></div>
-          <div class="reflex-lane-mark lane-3"></div>
+
           <div id="reflexPlayer" class="reflex-player" aria-hidden="true">
             <img id="reflexPlayerSprite" class="reflex-player-sprite" alt="" hidden />
           </div>
@@ -51,6 +50,6 @@
       </section>
     </main>
 
-    <script type="module" src="reflexdash.js"></script>
+    
   </body>
 </html>

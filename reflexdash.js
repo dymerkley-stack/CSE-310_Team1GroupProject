@@ -19,7 +19,7 @@ const WELLNESS_STATE_KEY = "wellnessState";
 // Optional sprite paths. Leave empty strings to keep fallback placeholders.
 const SPRITE_ASSETS = {
   player: "",
-  obstacle: "",
+  obstacle: "Images/fork.png",
   obstacleDouble: "",
 };
 
@@ -141,7 +141,15 @@ function disableSprite(element) {
     playerSprite.hidden = true;
     playerSprite.removeAttribute("src");
   } else {
+    // Remove any inline background image and any obstacle <img> fallback.
     element.style.backgroundImage = "";
+    const img = element.querySelector && element.querySelector("img.reflex-obstacle-img");
+    if (img) {
+      img.hidden = true;
+      img.removeAttribute("src");
+      // Keep element clean by removing the node.
+      img.remove();
+    }
   }
 }
 
@@ -151,16 +159,38 @@ function applySpriteIfAvailable(element, path) {
     return;
   }
 
+  // Optimistically apply the sprite so the element shows the image
+  // immediately; keep track of the requested path so we can roll back
+  // if the load fails.
   element.dataset.spritePath = path;
+  if (playerSprite && element === player) {
+    // For the player, set the img src immediately.
+    playerSprite.src = path;
+    playerSprite.hidden = false;
+    element.classList.add("reflex-uses-sprite");
+  } else {
+    element.classList.add("reflex-uses-sprite");
+    // Prefer an inner <img> for obstacles to avoid background-image timing issues
+    // and to make sure the asset scales reliably.
+    let img = element.querySelector && element.querySelector("img.reflex-obstacle-img");
+    if (!img) {
+      img = document.createElement("img");
+      img.className = "reflex-obstacle-img";
+      img.alt = "";
+      img.draggable = false;
+      element.appendChild(img);
+    }
+    img.src = path;
+    img.hidden = false;
+  }
 
+  // Verify the asset actually loads; if it fails, remove the sprite.
   loadSprite(path).then((loaded) => {
     if (!element.isConnected || element.dataset.spritePath !== path) {
       return;
     }
 
-    if (loaded) {
-      enableSprite(element, path);
-    } else {
+    if (!loaded) {
       disableSprite(element);
     }
   });
@@ -188,6 +218,8 @@ function createObstacle(lanes) {
   applySpriteIfAvailable(obstacle, obstacleSprite);
 
   obstacle.style.height = `${height}px`;
+  // Ensure the obstacle has the expected width so background sprites are visible
+  obstacle.style.width = `${OBSTACLE_SIZE}px`;
 
   track.appendChild(obstacle);
   obstacles.push({
@@ -472,7 +504,6 @@ function init() {
   applySpriteIfAvailable(player, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.player);
   updateHud();
   bindEvents();
-
   setStatus("Ready");
 }
 
