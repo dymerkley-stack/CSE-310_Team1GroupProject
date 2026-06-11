@@ -50,8 +50,10 @@
 
       <div class="battle-center">
         <h2 id="battleStatus">Select an Action</h2>
+        <p id="comboResult" class="combo-seed-hint">Last Combo: None</p>
         <p id="comboSeedHint" class="combo-seed-hint">Combo Seed: None</p>
         <p id="dungeonStatus" class="combo-seed-hint">Dungeon Mode: Off</p>
+        <p id="worldRunStatus" class="combo-seed-hint">World: Initializing...</p>
       </div>
 
       <div class="battle-side enemy-side">
@@ -89,12 +91,23 @@
       </button>
       <button id="defendBtn" class="defend-btn" type="button">Defend</button>
       <button id="startDungeonBtn" class="defend-btn" type="button">Start Dungeon Run</button>
+      <a class="defend-btn map-link-btn" href="worldmap.html">World Map</a>
+      <button id="resetWorldRunBtn" class="defend-btn" type="button">Reset World State (Dev)</button>
     </section>
 
     <section class="battle-rewards" id="rewardsSection" hidden>
       <h2 id="rewardsTitle">Battle Won!</h2>
       <p id="rewardExp">Gained 50 EXP</p>
       <button id="nextBattleBtn" class="primary-btn" type="button">Next Battle</button>
+    </section>
+
+    <section id="gauntletRewardModal" class="reward-modal" hidden>
+      <div class="reward-modal-card" role="dialog" aria-modal="true" aria-labelledby="rewardModalTitle">
+        <h2 id="rewardModalTitle">Reward Found</h2>
+        <p id="rewardModalSummary">You earned a reward.</p>
+        <ul id="rewardModalList" class="reward-modal-list"></ul>
+        <button id="acceptRewardBtn" class="primary-btn" type="button">Continue</button>
+      </div>
     </section>
   </main>
 

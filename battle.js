@@ -2,6 +2,10 @@ import { getSelectedAvatarForLevel } from "./avatar-selection.js";
 
 const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const WELLNESS_STATE_KEY = "wellnessState";
+const WORLD_RUN_STATE_KEY = "worldRunState";
+const BATTLE_SESSION_KEY = "battleSession";
+const WORLD_RUN_STATE_VERSION = 1;
+const WORLD_START_NODE_ID = "meadow-gate";
 const BATTLE_LOG_LIMIT = 5;
 const EXP_BASE = 100;
 const EXP_MULTIPLIER = 1.15;
@@ -14,6 +18,8 @@ const DUNGEON_TOTAL_FLOORS = 3;
 const DUNGEON_PARTIAL_HEAL_PERCENT = 0.2;
 const BASE_PLAYER_MAX_HEALTH = 500;
 const PLAYER_HEALTH_LEVEL_MODIFIER = 0.08;
+const MAX_STACKED_BUFF_TURNS = 6;
+const MAX_PENDING_BATTLE_HEAL = 260;
 const CONFETTI_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff9f1c", "#f15bb5"];
 
 // Optional sprite paths for battle avatars. Leave paths empty for text fallback.
@@ -32,6 +38,7 @@ const PLAYER_FALLBACK_AVATAR = "(o^.^o)";
 
 let playerProgress = { level: 1, exp: 0, checkins: 0 };
 let playerState = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+let worldRunState = createDefaultWorldRunState();
 let battleState = {
   playerHealth: 500,
   playerMaxHealth: BASE_PLAYER_MAX_HEALTH,
@@ -46,6 +53,8 @@ let battleState = {
   pendingEnemyAttack: null,
   lastPlayerAttribute: null,
   pendingEnemySpecial: null,
+  lastComboMessage: "Last Combo: None",
+  returnToWorldMapNext: false,
   dungeon: { active: false, floor: 0, totalFloors: DUNGEON_TOTAL_FLOORS },
   lastBattleWon: null,
 };
@@ -59,6 +68,15 @@ const monsters = [
   { name: "Dragon", baseHealth: 400, difficulty: 2 },
   { name: "Demon", baseHealth: 500, difficulty: 2.5 },
 ];
+
+const WORLD_ENCOUNTER_POOLS = {
+  "meadow-gate": ["Slime"],
+  "forest-trail": ["Slime", "Goblin"],
+  "cavern-bend": ["Goblin", "Orc"],
+  "ruins-crossing": ["Orc", "Dragon"],
+  "storm-peak": ["Orc", "Dragon", "Demon"],
+  "rift-core": ["Dragon", "Demon"],
+};
 
 const attributeSynergies = {
   "mental->intellectual": {
@@ -102,6 +120,74 @@ const attributeSynergies = {
       addBattleLog(`Synergy effect: Restored ${restored} Social energy.`);
     },
   },
+  "physical->spiritual": {
+    name: "Guardian Stance",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.playerStatus.regenTurns = Math.max(battleState.playerStatus.regenTurns, 1);
+      addBattleLog("Synergy effect: Regeneration primed for your next turn.");
+    },
+  },
+  "spiritual->physical": {
+    name: "Vital Strike",
+    bonusMultiplier: 1.25,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.physical = Math.min(100, playerState.physical + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Physical energy.`);
+    },
+  },
+  "mental->social": {
+    name: "Silver Tongue",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.enemyStatus.weakenedTurns = Math.max(battleState.enemyStatus.weakenedTurns, 1);
+      addBattleLog("Synergy effect: Enemy is weakened for 1 turn.");
+    },
+  },
+  "social->mental": {
+    name: "Crowd Read",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.mental = Math.min(100, playerState.mental + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Mental energy.`);
+    },
+  },
+  "intellectual->spiritual": {
+    name: "Zen Equation",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 5;
+      playerState.spiritual = Math.min(100, playerState.spiritual + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Spiritual energy.`);
+    },
+  },
+  "spiritual->intellectual": {
+    name: "Clarity Pulse",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      battleState.playerStatus.focusTurns = Math.max(battleState.playerStatus.focusTurns, 1);
+      addBattleLog("Synergy effect: Focus empowered for 1 turn.");
+    },
+  },
+  "physical->intellectual": {
+    name: "Precision Drill",
+    bonusMultiplier: 1.22,
+    applyEffect: () => {
+      battleState.enemyStatus.vulnerableTurns = Math.max(battleState.enemyStatus.vulnerableTurns, 1);
+      addBattleLog("Synergy effect: Enemy becomes vulnerable for 1 turn.");
+    },
+  },
+  "social->physical": {
+    name: "Rally Charge",
+    bonusMultiplier: 1.2,
+    applyEffect: () => {
+      const restored = 4;
+      playerState.physical = Math.min(100, playerState.physical + restored);
+      addBattleLog(`Synergy effect: Restored ${restored} Physical energy.`);
+    },
+  },
 };
 
 const monsterAsciiMap = {
@@ -119,6 +205,516 @@ const enemySpecialMoves = {
   Dragon: { name: "Fire Breath", multiplier: 2.0 },
   Demon: { name: "Abyssal Ruin", multiplier: 2.2 },
 };
+
+const WORLD_NODES = {
+  "meadow-gate": { fightsInRow: 2, healthScale: 0.95, damageScale: 0.94, rewardBias: 1.02 },
+  "forest-trail": { fightsInRow: 3, healthScale: 1.0, damageScale: 1.0, rewardBias: 1.0 },
+  "cavern-bend": { fightsInRow: 3, healthScale: 1.08, damageScale: 1.06, rewardBias: 0.98 },
+  "ruins-crossing": { fightsInRow: 4, healthScale: 1.16, damageScale: 1.12, rewardBias: 0.96 },
+  "storm-peak": { fightsInRow: 5, healthScale: 1.24, damageScale: 1.2, rewardBias: 0.95 },
+  "rift-core": { fightsInRow: 6, healthScale: 1.34, damageScale: 1.28, rewardBias: 0.92 },
+};
+
+const ATTRIBUTE_KEYS = ["physical", "mental", "social", "intellectual", "spiritual"];
+
+function createDefaultWorldRunState() {
+  return {
+    version: WORLD_RUN_STATE_VERSION,
+    currentNodeId: WORLD_START_NODE_ID,
+    unlockedNodeIds: [WORLD_START_NODE_ID],
+    completedNodeIds: [],
+    streakFightsRemaining: 0,
+    gauntlet: {
+      active: false,
+      nodeId: WORLD_START_NODE_ID,
+      totalFights: 0,
+      completedFights: 0,
+    },
+    activeBuffs: {
+      damageBoostTurns: 0,
+      defenseBoostTurns: 0,
+      regenBoostTurns: 0,
+    },
+    pendingAttributeHeals: {
+      physical: 0,
+      mental: 0,
+      social: 0,
+      intellectual: 0,
+      spiritual: 0,
+    },
+    pendingBattleHeal: 0,
+    petCurrency: 0,
+    completedRuns: 0,
+  };
+}
+
+function toNonNegativeInteger(value, fallback = 0) {
+  const parsed = Number.parseInt(String(value ?? fallback), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(0, parsed);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sanitizeUnlockedNodeIds(value) {
+  const raw = Array.isArray(value) ? value : [];
+  const unique = [...new Set(raw.filter((item) => typeof item === "string" && item.trim().length > 0))];
+  if (!unique.includes(WORLD_START_NODE_ID)) {
+    unique.unshift(WORLD_START_NODE_ID);
+  }
+  return unique;
+}
+
+function sanitizeWorldRunState(rawState) {
+  const defaults = createDefaultWorldRunState();
+  const source = rawState && typeof rawState === "object" ? rawState : {};
+  const activeBuffs = source.activeBuffs && typeof source.activeBuffs === "object" ? source.activeBuffs : {};
+  const pendingAttributeHeals = source.pendingAttributeHeals && typeof source.pendingAttributeHeals === "object"
+    ? source.pendingAttributeHeals
+    : {};
+  const gauntlet = source.gauntlet && typeof source.gauntlet === "object" ? source.gauntlet : {};
+
+  const merged = {
+    ...defaults,
+    version: WORLD_RUN_STATE_VERSION,
+    currentNodeId: typeof source.currentNodeId === "string" && source.currentNodeId.trim().length > 0
+      ? source.currentNodeId
+      : WORLD_START_NODE_ID,
+    unlockedNodeIds: sanitizeUnlockedNodeIds(source.unlockedNodeIds),
+    completedNodeIds: Array.isArray(source.completedNodeIds)
+      ? [...new Set(source.completedNodeIds.filter((item) => typeof item === "string" && item.trim().length > 0))]
+      : [],
+    streakFightsRemaining: toNonNegativeInteger(source.streakFightsRemaining, defaults.streakFightsRemaining),
+    gauntlet: {
+      active: Boolean(gauntlet.active),
+      nodeId: typeof gauntlet.nodeId === "string" && gauntlet.nodeId.trim().length > 0
+        ? gauntlet.nodeId
+        : WORLD_START_NODE_ID,
+      totalFights: toNonNegativeInteger(gauntlet.totalFights, defaults.gauntlet.totalFights),
+      completedFights: toNonNegativeInteger(gauntlet.completedFights, defaults.gauntlet.completedFights),
+    },
+    activeBuffs: {
+      damageBoostTurns: toNonNegativeInteger(activeBuffs.damageBoostTurns, defaults.activeBuffs.damageBoostTurns),
+      defenseBoostTurns: toNonNegativeInteger(activeBuffs.defenseBoostTurns, defaults.activeBuffs.defenseBoostTurns),
+      regenBoostTurns: toNonNegativeInteger(activeBuffs.regenBoostTurns, defaults.activeBuffs.regenBoostTurns),
+    },
+    pendingAttributeHeals: {
+      physical: toNonNegativeInteger(pendingAttributeHeals.physical, defaults.pendingAttributeHeals.physical),
+      mental: toNonNegativeInteger(pendingAttributeHeals.mental, defaults.pendingAttributeHeals.mental),
+      social: toNonNegativeInteger(pendingAttributeHeals.social, defaults.pendingAttributeHeals.social),
+      intellectual: toNonNegativeInteger(pendingAttributeHeals.intellectual, defaults.pendingAttributeHeals.intellectual),
+      spiritual: toNonNegativeInteger(pendingAttributeHeals.spiritual, defaults.pendingAttributeHeals.spiritual),
+    },
+    pendingBattleHeal: toNonNegativeInteger(source.pendingBattleHeal, defaults.pendingBattleHeal),
+    petCurrency: toNonNegativeInteger(source.petCurrency, defaults.petCurrency),
+    completedRuns: toNonNegativeInteger(source.completedRuns, defaults.completedRuns),
+  };
+
+  if (!merged.unlockedNodeIds.includes(merged.currentNodeId)) {
+    merged.unlockedNodeIds.push(merged.currentNodeId);
+  }
+
+  return merged;
+}
+
+function loadWorldRunState() {
+  const raw = localStorage.getItem(WORLD_RUN_STATE_KEY);
+  if (!raw) {
+    worldRunState = createDefaultWorldRunState();
+    saveWorldRunState();
+    return;
+  }
+
+  try {
+    worldRunState = sanitizeWorldRunState(JSON.parse(raw));
+  } catch {
+    worldRunState = createDefaultWorldRunState();
+  }
+
+  saveWorldRunState();
+}
+
+function saveWorldRunState() {
+  localStorage.setItem(WORLD_RUN_STATE_KEY, JSON.stringify(worldRunState));
+}
+
+function resetWorldRunState() {
+  worldRunState = createDefaultWorldRunState();
+  clearBattleSession();
+  saveWorldRunState();
+  renderBattleUI();
+}
+
+function isWorldGauntletActive() {
+  return Boolean(worldRunState.gauntlet?.active);
+}
+
+function initializeBattleModeFromWorldState() {
+  if (!isWorldGauntletActive()) {
+    return;
+  }
+
+  const totalFights = Math.max(1, toNonNegativeInteger(worldRunState.gauntlet.totalFights, 1));
+  const completedFights = Math.min(totalFights - 1, toNonNegativeInteger(worldRunState.gauntlet.completedFights, 0));
+
+  battleState.dungeon.active = true;
+  battleState.dungeon.totalFloors = totalFights;
+  battleState.dungeon.floor = Math.max(1, completedFights + 1);
+
+  worldRunState.gauntlet.totalFights = totalFights;
+  worldRunState.gauntlet.completedFights = completedFights;
+}
+
+function completeWorldNodeProgression(nodeId) {
+  if (!nodeId) {
+    return;
+  }
+
+  if (!worldRunState.completedNodeIds.includes(nodeId)) {
+    worldRunState.completedNodeIds.push(nodeId);
+  }
+
+  const unlocked = [WORLD_START_NODE_ID];
+  const nodeIds = Object.keys(WORLD_NODES);
+
+  for (let i = 1; i < nodeIds.length; i += 1) {
+    if (!worldRunState.completedNodeIds.includes(nodeIds[i - 1])) {
+      break;
+    }
+    unlocked.push(nodeIds[i]);
+  }
+
+  worldRunState.unlockedNodeIds = unlocked;
+}
+
+function clearActiveWorldGauntlet() {
+  worldRunState.gauntlet = {
+    active: false,
+    nodeId: worldRunState.currentNodeId || WORLD_START_NODE_ID,
+    totalFights: 0,
+    completedFights: 0,
+  };
+  worldRunState.streakFightsRemaining = 0;
+}
+
+function syncWorldRunBattleSnapshot() {
+  if (!battleState.dungeon.active) {
+    worldRunState.streakFightsRemaining = 0;
+    return;
+  }
+
+  const fightsCleared = Math.max(0, battleState.dungeon.floor - 1);
+  worldRunState.streakFightsRemaining = Math.max(0, battleState.dungeon.totalFloors - fightsCleared);
+
+  if (isWorldGauntletActive()) {
+    worldRunState.gauntlet.totalFights = battleState.dungeon.totalFloors;
+    worldRunState.gauntlet.completedFights = fightsCleared;
+  }
+}
+
+function getWorldRunStatusText() {
+  const buffs = worldRunState.activeBuffs;
+  return `World: Node ${worldRunState.currentNodeId} | Unlocked ${worldRunState.unlockedNodeIds.length} | Completed ${worldRunState.completedNodeIds.length} | Streak ${worldRunState.streakFightsRemaining} | Coins ${worldRunState.petCurrency} | Runs ${worldRunState.completedRuns} | HealPack ${worldRunState.pendingBattleHeal} | Buffs D${buffs.damageBoostTurns}/T${buffs.defenseBoostTurns}/R${buffs.regenBoostTurns}`;
+}
+
+function getActiveWorldNodeBalance() {
+  const nodeId = worldRunState.gauntlet?.nodeId || worldRunState.currentNodeId;
+  return WORLD_NODES[nodeId] || WORLD_NODES[WORLD_START_NODE_ID];
+}
+
+function getGauntletProgressScalar() {
+  if (!isWorldGauntletActive() || battleState.dungeon.totalFloors <= 1) {
+    return 0;
+  }
+
+  const progress = (Math.max(1, battleState.dungeon.floor) - 1) / (battleState.dungeon.totalFloors - 1);
+  return clamp(progress, 0, 1);
+}
+
+function getNodeCombatScales() {
+  if (!isWorldGauntletActive()) {
+    return { healthScale: 1, damageScale: 1, rewardBias: 1 };
+  }
+
+  const node = getActiveWorldNodeBalance();
+  const progressScalar = getGauntletProgressScalar();
+  return {
+    healthScale: node.healthScale + progressScalar * 0.08,
+    damageScale: node.damageScale + progressScalar * 0.06,
+    rewardBias: node.rewardBias,
+  };
+}
+
+function getNodeRewardRollCount(finalFight) {
+  if (!isWorldGauntletActive()) {
+    return finalFight ? 2 : 1;
+  }
+
+  const node = getActiveWorldNodeBalance();
+  if (finalFight) {
+    return node.fightsInRow >= 5 ? 2 : 2;
+  }
+  return 1;
+}
+
+function clearBattleSession() {
+  localStorage.removeItem(BATTLE_SESSION_KEY);
+}
+
+function saveBattleSession() {
+  if (!battleState.currentEnemy) {
+    return;
+  }
+
+  const rewardsSection = document.getElementById("rewardsSection");
+  const snapshot = {
+    playerHealth: battleState.playerHealth,
+    playerMaxHealth: battleState.playerMaxHealth,
+    currentEnemy: battleState.currentEnemy,
+    isPlayerTurn: battleState.isPlayerTurn,
+    isDefending: battleState.isDefending,
+    playerStatus: battleState.playerStatus,
+    enemyStatus: battleState.enemyStatus,
+    pendingEnemyAttack: battleState.pendingEnemyAttack,
+    pendingEnemySpecial: battleState.pendingEnemySpecial,
+    lastPlayerAttribute: battleState.lastPlayerAttribute,
+    lastComboMessage: battleState.lastComboMessage,
+    returnToWorldMapNext: battleState.returnToWorldMapNext,
+    dungeon: battleState.dungeon,
+    lastBattleWon: battleState.lastBattleWon,
+    rewardsVisible: rewardsSection ? !rewardsSection.hidden : false,
+    timestamp: Date.now(),
+  };
+
+  localStorage.setItem(BATTLE_SESSION_KEY, JSON.stringify(snapshot));
+}
+
+function restoreBattleSession() {
+  const raw = localStorage.getItem(BATTLE_SESSION_KEY);
+  if (!raw) {
+    return false;
+  }
+
+  hideRewardPopup();
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.currentEnemy) {
+      clearBattleSession();
+      return false;
+    }
+
+    battleState.playerHealth = toNonNegativeInteger(parsed.playerHealth, battleState.playerHealth);
+    battleState.playerMaxHealth = toNonNegativeInteger(parsed.playerMaxHealth, battleState.playerMaxHealth);
+    battleState.currentEnemy = parsed.currentEnemy;
+    battleState.isPlayerTurn = Boolean(parsed.isPlayerTurn);
+    battleState.isDefending = Boolean(parsed.isDefending);
+    battleState.playerStatus = parsed.playerStatus || { regenTurns: 0, focusTurns: 0 };
+    battleState.enemyStatus = parsed.enemyStatus || { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
+    battleState.pendingEnemyAttack = parsed.pendingEnemyAttack || null;
+    battleState.pendingEnemySpecial = parsed.pendingEnemySpecial || null;
+    battleState.lastPlayerAttribute = parsed.lastPlayerAttribute || null;
+    battleState.lastComboMessage = parsed.lastComboMessage || "Last Combo: None";
+    battleState.returnToWorldMapNext = Boolean(parsed.returnToWorldMapNext);
+    battleState.dungeon = parsed.dungeon || battleState.dungeon;
+    battleState.lastBattleWon = typeof parsed.lastBattleWon === "boolean" ? parsed.lastBattleWon : null;
+
+    const rewardsSection = document.getElementById("rewardsSection");
+    if (rewardsSection) {
+      rewardsSection.hidden = !Boolean(parsed.rewardsVisible);
+    }
+
+    const actionButtons = document.querySelector(".action-buttons");
+    if (actionButtons) {
+      const blocked = Boolean(parsed.rewardsVisible);
+      actionButtons.style.pointerEvents = blocked ? "none" : "auto";
+      actionButtons.style.opacity = blocked ? "0.5" : "1";
+    }
+
+    return true;
+  } catch {
+    clearBattleSession();
+    return false;
+  }
+}
+
+function applyPendingBattleHealIfAvailable() {
+  if (worldRunState.pendingBattleHeal <= 0) {
+    return;
+  }
+
+  if (battleState.playerHealth >= battleState.playerMaxHealth) {
+    return;
+  }
+
+  const before = battleState.playerHealth;
+  battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + worldRunState.pendingBattleHeal);
+  const healed = Math.max(0, battleState.playerHealth - before);
+  worldRunState.pendingBattleHeal = Math.max(0, worldRunState.pendingBattleHeal - healed);
+
+  if (healed > 0) {
+    addBattleLog(`Heal Pack restores ${healed} health before battle.`);
+  }
+}
+
+function randomInt(min, max) {
+  const safeMin = Math.ceil(Math.min(min, max));
+  const safeMax = Math.floor(Math.max(min, max));
+  return Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
+}
+
+function getRandomAttributeKey() {
+  const index = randomInt(0, ATTRIBUTE_KEYS.length - 1);
+  return ATTRIBUTE_KEYS[index];
+}
+
+function getRandomGauntletRewardType() {
+  const node = getActiveWorldNodeBalance();
+  const rewardBias = clamp(node.rewardBias ?? 1, 0.85, 1.2);
+  const lowBuffSpace = worldRunState.activeBuffs.damageBoostTurns >= MAX_STACKED_BUFF_TURNS
+    && worldRunState.activeBuffs.defenseBoostTurns >= MAX_STACKED_BUFF_TURNS
+    && worldRunState.activeBuffs.regenBoostTurns >= MAX_STACKED_BUFF_TURNS;
+
+  const pool = [
+    { type: "heal", weight: Math.round(22 * rewardBias) },
+    { type: "damageBuff", weight: lowBuffSpace ? 4 : Math.round(14 * rewardBias) },
+    { type: "defenseBuff", weight: lowBuffSpace ? 4 : Math.round(14 * rewardBias) },
+    { type: "regenBuff", weight: lowBuffSpace ? 4 : Math.round(12 * rewardBias) },
+    { type: "attributeHeal", weight: Math.round(19 * rewardBias) },
+    { type: "currency", weight: Math.round(19 * rewardBias) },
+  ];
+
+  const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
+  let roll = randomInt(1, totalWeight);
+
+  for (let i = 0; i < pool.length; i += 1) {
+    roll -= pool[i].weight;
+    if (roll <= 0) {
+      return pool[i].type;
+    }
+  }
+
+  return "currency";
+}
+
+function addCappedBuffTurns(buffKey, turnsToAdd) {
+  const current = toNonNegativeInteger(worldRunState.activeBuffs[buffKey], 0);
+  worldRunState.activeBuffs[buffKey] = Math.min(MAX_STACKED_BUFF_TURNS, current + turnsToAdd);
+}
+
+function applyGauntletRewardType(rewardType, options = {}) {
+  const finalFight = Boolean(options.finalFight);
+
+  if (rewardType === "heal") {
+    const healPercent = finalFight ? randomInt(24, 36) : randomInt(14, 24);
+    const healAmount = Math.max(1, Math.round((battleState.playerMaxHealth * healPercent) / 100));
+    const before = battleState.playerHealth;
+    battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + healAmount);
+    const recovered = Math.max(0, battleState.playerHealth - before);
+    return recovered > 0 ? `Recovered ${recovered} health.` : "Health was already full.";
+  }
+
+  if (rewardType === "damageBuff") {
+    const turns = finalFight ? 3 : 2;
+    addCappedBuffTurns("damageBoostTurns", turns);
+    return `Damage Boost applied for ${turns} turns.`;
+  }
+
+  if (rewardType === "defenseBuff") {
+    const turns = finalFight ? 3 : 2;
+    addCappedBuffTurns("defenseBoostTurns", turns);
+    return `Defense Boost applied for ${turns} turns.`;
+  }
+
+  if (rewardType === "regenBuff") {
+    const turns = finalFight ? 3 : 2;
+    addCappedBuffTurns("regenBoostTurns", turns);
+    return `Regeneration Boost applied for ${turns} turns.`;
+  }
+
+  if (rewardType === "attributeHeal") {
+    const attribute = getRandomAttributeKey();
+    const restoreAmount = finalFight ? randomInt(18, 30) : randomInt(10, 20);
+    playerState[attribute] = Math.min(100, playerState[attribute] + restoreAmount);
+    return `Restored ${restoreAmount} ${formatAttributeName(attribute)} energy.`;
+  }
+
+  const currencyGain = finalFight ? randomInt(16, 32) : randomInt(8, 18);
+  worldRunState.petCurrency += currencyGain;
+  return `Gained ${currencyGain} Pet Coins.`;
+}
+
+function rollGauntletRewards(options = {}) {
+  const finalFight = Boolean(options.finalFight);
+  const rollCount = getNodeRewardRollCount(finalFight);
+  const lines = [];
+  const rolledTypes = [];
+
+  for (let i = 0; i < rollCount; i += 1) {
+    let type = getRandomGauntletRewardType();
+    if (rolledTypes.includes(type)) {
+      type = "currency";
+    }
+    rolledTypes.push(type);
+    lines.push(applyGauntletRewardType(type, { finalFight }));
+  }
+
+  return {
+    title: finalFight ? "Node Rewards" : "Fight Reward",
+    summary: finalFight
+      ? "Your final gauntlet rewards are ready."
+      : "You earned a random reward for clearing this fight.",
+    lines,
+  };
+}
+
+function isRewardPopupOpen() {
+  const modal = document.getElementById("gauntletRewardModal");
+  return Boolean(modal) && !modal.hidden;
+}
+
+function showRewardPopup(packageData) {
+  const modal = document.getElementById("gauntletRewardModal");
+  if (!modal || !packageData) {
+    return;
+  }
+
+  const title = document.getElementById("rewardModalTitle");
+  const summary = document.getElementById("rewardModalSummary");
+  const list = document.getElementById("rewardModalList");
+  const nextButton = document.getElementById("nextBattleBtn");
+
+  title.textContent = packageData.title;
+  summary.textContent = packageData.summary;
+  list.innerHTML = "";
+
+  for (let i = 0; i < packageData.lines.length; i += 1) {
+    const item = document.createElement("li");
+    item.textContent = packageData.lines[i];
+    list.appendChild(item);
+  }
+
+  if (nextButton) {
+    nextButton.disabled = true;
+  }
+
+  modal.hidden = false;
+}
+
+function hideRewardPopup() {
+  const modal = document.getElementById("gauntletRewardModal");
+  const nextButton = document.getElementById("nextBattleBtn");
+  if (modal) {
+    modal.hidden = true;
+  }
+  if (nextButton) {
+    nextButton.disabled = false;
+  }
+}
 
 function loadSprite(path) {
   if (!path) {
@@ -236,6 +832,7 @@ function loadPlayerData() {
 function savePlayerData() {
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(playerState));
   localStorage.setItem(WELLNESS_PROGRESS_KEY, JSON.stringify(playerProgress));
+  saveWorldRunState();
 }
 
 function rainConfetti(options = {}) {
@@ -467,7 +1064,8 @@ function planNextEnemyIntent() {
 
   if (battleState.pendingEnemySpecial && specialMove) {
     const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
-    let damage = Math.round(calculatePetStats(randomAttr) * specialMove.multiplier);
+    const scales = getNodeCombatScales();
+    let damage = Math.round(calculatePetStats(randomAttr) * specialMove.multiplier * scales.damageScale);
 
     if (battleState.enemyStatus.weakenedTurns > 0) {
       damage = Math.round(damage * 0.5);
@@ -492,7 +1090,8 @@ function planNextEnemyIntent() {
   }
 
   const randomAttr = attributes[Math.floor(Math.random() * attributes.length)];
-  let damage = Math.round(calculatePetStats(randomAttr) * 0.8);
+  const scales = getNodeCombatScales();
+  let damage = Math.round(calculatePetStats(randomAttr) * 0.8 * scales.damageScale);
 
   if (battleState.enemyStatus.weakenedTurns > 0) {
     damage = Math.round(damage * 0.5);
@@ -522,25 +1121,50 @@ function getUnlockedMonsterIndexForLevel(level) {
   return 0;
 }
 
-function generateMonster() {
-  const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(playerProgress.level);
-  let selectedIndex = strongestUnlockedIndex;
+function getCurrentWorldNodeId() {
+  if (isWorldGauntletActive()) {
+    return worldRunState.gauntlet.nodeId;
+  }
+  return worldRunState.currentNodeId;
+}
 
-  if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
-    if (strongestUnlockedIndex > 0) {
-      selectedIndex = Math.floor(Math.random() * strongestUnlockedIndex);
+function getWorldEncounterPool() {
+  const nodeId = getCurrentWorldNodeId();
+  return WORLD_ENCOUNTER_POOLS[nodeId] || [];
+}
+
+function getMonsterByName(monsterName) {
+  for (let i = 0; i < monsters.length; i += 1) {
+    if (monsters[i].name === monsterName) {
+      return monsters[i];
     }
   }
+  return null;
+}
 
-  const selected = monsters[selectedIndex];
+function generateMonster() {
+  const worldPool = getWorldEncounterPool();
+  let selected = null;
 
-  const health = Math.round(selected.baseHealth * (1 + playerProgress.level * 0.1));
+  if (worldPool.length > 0) {
+    const randomName = worldPool[Math.floor(Math.random() * worldPool.length)];
+    selected = getMonsterByName(randomName);
+  }
+
+  if (!selected) {
+    const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(playerProgress.level);
+    selected = monsters[strongestUnlockedIndex];
+  }
+
+  const scales = getNodeCombatScales();
+  const health = Math.round(selected.baseHealth * (1 + playerProgress.level * 0.1) * scales.healthScale);
+  const difficulty = Number((selected.difficulty * ((scales.healthScale + scales.damageScale) / 2)).toFixed(2));
 
   return {
     name: selected.name,
     maxHealth: health,
     health: health,
-    difficulty: selected.difficulty,
+    difficulty,
   };
 }
 
@@ -595,6 +1219,18 @@ function applyCriticalStatusEffect(attribute) {
 }
 
 function applyStartOfPlayerTurnEffects() {
+  if (worldRunState.activeBuffs.regenBoostTurns > 0) {
+    const boostedHeal = Math.max(1, Math.round(battleState.playerMaxHealth * 0.06));
+    const beforeBoost = battleState.playerHealth;
+    battleState.playerHealth = Math.min(battleState.playerMaxHealth, battleState.playerHealth + boostedHeal);
+    const healed = battleState.playerHealth - beforeBoost;
+    worldRunState.activeBuffs.regenBoostTurns -= 1;
+    if (healed > 0) {
+      addBattleLog(`Regeneration boost restores ${healed} health.`);
+      showCombatText({ target: "player", value: healed, type: "heal" });
+    }
+  }
+
   if (battleState.playerStatus.regenTurns > 0) {
     const before = battleState.playerHealth;
     battleState.playerHealth = Math.min(
@@ -625,11 +1261,18 @@ function getComboSeedHint() {
   return `Combo Seed: ${formatAttributeName(battleState.lastPlayerAttribute)}`;
 }
 
+function getComboResultText() {
+  return battleState.lastComboMessage || "Last Combo: None";
+}
+
 function getMonsterAscii(monsterName) {
   return monsterAsciiMap[monsterName] || "o_o";
 }
 
 function getDungeonStatusText() {
+  if (isWorldGauntletActive()) {
+    return `World Gauntlet: Fight ${battleState.dungeon.floor}/${battleState.dungeon.totalFloors}`;
+  }
   if (!battleState.dungeon.active) return "Dungeon Mode: Off";
   return `Dungeon Run: Floor ${battleState.dungeon.floor}/${battleState.dungeon.totalFloors}`;
 }
@@ -688,15 +1331,26 @@ function renderBattleUI() {
   }
 
   document.getElementById("battleStatus").textContent = battleState.isPlayerTurn ? "Your Turn" : "Enemy Attacking...";
+  document.getElementById("comboResult").textContent = getComboResultText();
   document.getElementById("comboSeedHint").textContent = getComboSeedHint();
   document.getElementById("dungeonStatus").textContent = getDungeonStatusText();
+  document.getElementById("worldRunStatus").textContent = getWorldRunStatusText();
 
   const dungeonButton = document.getElementById("startDungeonBtn");
   if (dungeonButton) {
-    dungeonButton.textContent = battleState.dungeon.active
-      ? "Restart Dungeon Run (Reset HP)"
-      : "Start Dungeon Run";
+    if (isWorldGauntletActive()) {
+      dungeonButton.textContent = "World Gauntlet Active";
+      dungeonButton.disabled = true;
+    } else {
+      dungeonButton.disabled = false;
+      dungeonButton.textContent = battleState.dungeon.active
+        ? "Restart Dungeon Run (Reset HP)"
+        : "Start Dungeon Run";
+    }
   }
+
+  savePlayerData();
+  saveBattleSession();
 }
 
 function performAction(attribute) {
@@ -713,6 +1367,7 @@ function performAction(attribute) {
   const isCritical = Math.random() < CRITICAL_HIT_CHANCE;
   let damage = getAttackDamage(attribute);
   const activeSynergy = getActiveSynergy(attribute);
+  const previousAttribute = battleState.lastPlayerAttribute;
 
   if (battleState.playerStatus.focusTurns > 0) {
     damage = Math.round(damage * 1.2);
@@ -726,10 +1381,19 @@ function performAction(attribute) {
     addBattleLog("Enemy vulnerability increases your damage!");
   }
 
+  if (worldRunState.activeBuffs.damageBoostTurns > 0) {
+    damage = Math.round(damage * 1.18);
+    worldRunState.activeBuffs.damageBoostTurns -= 1;
+    addBattleLog("Damage Boost increases your attack!");
+  }
+
   if (activeSynergy) {
     damage = Math.round(damage * activeSynergy.bonusMultiplier);
     addBattleLog(`Synergy triggered: ${activeSynergy.name}!`);
+    battleState.lastComboMessage = `Last Combo: ${activeSynergy.name} (${formatAttributeName(previousAttribute)} -> ${formatAttributeName(attribute)})`;
     activeSynergy.applyEffect();
+  } else {
+    battleState.lastComboMessage = "Last Combo: None this turn";
   }
 
   if (isCritical) {
@@ -766,6 +1430,7 @@ function performDefend() {
 
   battleState.isDefending = true;
   battleState.lastPlayerAttribute = null;
+  battleState.lastComboMessage = "Last Combo: None (Defend used)";
   addBattleLog("You brace for impact!");
   battleState.isPlayerTurn = false;
   renderBattleUI();
@@ -800,6 +1465,12 @@ function enemyTurn() {
       battleState.isDefending = false;
     }
 
+    if (worldRunState.activeBuffs.defenseBoostTurns > 0) {
+      actualDamage = Math.round(actualDamage * 0.76);
+      worldRunState.activeBuffs.defenseBoostTurns -= 1;
+      addBattleLog("Defense Boost softens incoming damage!");
+    }
+
     battleState.playerHealth = Math.max(0, battleState.playerHealth - actualDamage);
     showCombatText({ target: "player", value: actualDamage, type: "damage" });
 
@@ -823,6 +1494,7 @@ function endBattle(playerWon) {
   const actionButtons = document.querySelector(".action-buttons");
   actionButtons.style.pointerEvents = "none";
   actionButtons.style.opacity = "0.5";
+  const isWorldGauntlet = isWorldGauntletActive();
 
   if (playerWon) {
     const levelBefore = playerProgress.level;
@@ -846,16 +1518,39 @@ function endBattle(playerWon) {
 
     battleState.lastBattleWon = true;
 
-    if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
+    if (battleState.dungeon.active && battleState.dungeon.floor < battleState.dungeon.totalFloors && !isWorldGauntlet) {
       applyDungeonRecovery();
     }
 
     addBattleLog(`Victory! Gained ${totalExp} EXP!`);
     if (battleState.dungeon.active) {
+      if (isWorldGauntlet) {
+        const finalGauntletFight = battleState.dungeon.floor >= battleState.dungeon.totalFloors;
+        const rewardPack = rollGauntletRewards({ finalFight: finalGauntletFight });
+        showRewardPopup(rewardPack);
+      }
+
       if (battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
-        document.getElementById("rewardsTitle").textContent = "Dungeon Cleared!";
-        document.getElementById("rewardExp").textContent = `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
-        document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+        if (isWorldGauntlet) {
+          const nodeId = worldRunState.gauntlet.nodeId || worldRunState.currentNodeId;
+          completeWorldNodeProgression(nodeId);
+          worldRunState.completedRuns += 1;
+          clearActiveWorldGauntlet();
+          battleState.returnToWorldMapNext = true;
+          battleState.dungeon.active = false;
+          battleState.dungeon.floor = 0;
+          document.getElementById("rewardsTitle").textContent = "World Node Cleared!";
+          document.getElementById("rewardExp").textContent = `Gauntlet complete! Gained ${totalExp} EXP (+${bonus} Battle Bonus). Rewards granted. Returning to world map.`;
+          document.getElementById("nextBattleBtn").textContent = "Return to World Map";
+        } else {
+          document.getElementById("rewardsTitle").textContent = "Dungeon Cleared!";
+          document.getElementById("rewardExp").textContent = `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+          document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+        }
+      } else if (isWorldGauntlet) {
+        document.getElementById("rewardsTitle").textContent = "Fight Cleared!";
+        document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Random reward granted. HP and buffs carry to the next fight.`;
+        document.getElementById("nextBattleBtn").textContent = "Next Gauntlet Fight";
       } else {
         document.getElementById("rewardsTitle").textContent = "Floor Cleared!";
         document.getElementById("rewardExp").textContent = `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
@@ -870,9 +1565,17 @@ function endBattle(playerWon) {
     battleState.lastBattleWon = false;
     addBattleLog("Defeated! Your pet needs rest.");
     if (battleState.dungeon.active) {
-      document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
-      document.getElementById("rewardExp").textContent = "Dungeon run ended. Start a new dungeon to reset and try again.";
-      document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+      if (isWorldGauntlet) {
+        clearActiveWorldGauntlet();
+        battleState.returnToWorldMapNext = true;
+        document.getElementById("rewardsTitle").textContent = "World Node Failed";
+        document.getElementById("rewardExp").textContent = "Gauntlet failed. Return to world map to pick your next challenge.";
+        document.getElementById("nextBattleBtn").textContent = "Return to World Map";
+      } else {
+        document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
+        document.getElementById("rewardExp").textContent = "Dungeon run ended. Start a new dungeon to reset and try again.";
+        document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+      }
       battleState.dungeon.active = false;
       battleState.dungeon.floor = 0;
     } else {
@@ -888,20 +1591,28 @@ function endBattle(playerWon) {
 }
 
 function startNewBattle(options = {}) {
-  const { preserveHealth = false } = options;
+  const { preserveHealth = false, preservePlayerStatus = false } = options;
+  battleState.returnToWorldMapNext = false;
+  syncWorldRunBattleSnapshot();
+  saveWorldRunState();
   syncPlayerMaxHealthWithLevel();
   battleState.currentEnemy = generateMonster();
   if (!preserveHealth) {
     battleState.playerHealth = battleState.playerMaxHealth;
   }
+  applyPendingBattleHealIfAvailable();
   battleState.enemyHealth = battleState.currentEnemy.maxHealth;
   battleState.isPlayerTurn = true;
   battleState.isDefending = false;
   battleState.pendingEnemyAttack = null;
-  battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
+  if (!preservePlayerStatus) {
+    battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
+  }
   battleState.enemyStatus = { stunnedTurns: 0, weakenedTurns: 0, vulnerableTurns: 0 };
   battleState.lastPlayerAttribute = null;
   battleState.pendingEnemySpecial = null;
+  battleState.lastComboMessage = "Last Combo: None";
+  hideRewardPopup();
   clearEnemyIntentText();
   planNextEnemyIntent();
 
@@ -913,31 +1624,77 @@ function startNewBattle(options = {}) {
   actionButtons.style.opacity = "1";
 
   addBattleLog(`A wild ${battleState.currentEnemy.name} appears!`);
+  savePlayerData();
   renderBattleUI();
 }
 
 function startDungeonRun() {
+  clearActiveWorldGauntlet();
   battleState.dungeon.active = true;
   battleState.dungeon.floor = 1;
+  battleState.dungeon.totalFloors = DUNGEON_TOTAL_FLOORS;
   battleState.lastBattleWon = null;
+  syncWorldRunBattleSnapshot();
+  saveWorldRunState();
   startNewBattle({ preserveHealth: false });
   addBattleLog("Dungeon run started! Clear all floors in one run.");
 }
 
 function handleNextBattle() {
+  if (isRewardPopupOpen()) {
+    return;
+  }
+
+  if (battleState.returnToWorldMapNext) {
+    battleState.returnToWorldMapNext = false;
+    clearBattleSession();
+    window.location.href = "worldmap.html";
+    return;
+  }
+
+  if (!battleState.lastBattleWon && !battleState.dungeon.active && !isWorldGauntletActive()) {
+    startNewBattle({ preserveHealth: false });
+    return;
+  }
+
+  if (!battleState.lastBattleWon && !battleState.dungeon.active) {
+    clearBattleSession();
+    window.location.href = "worldmap.html";
+    return;
+  }
+
   if (battleState.dungeon.active) {
     if (battleState.lastBattleWon && battleState.dungeon.floor < battleState.dungeon.totalFloors) {
       battleState.dungeon.floor += 1;
-      startNewBattle({ preserveHealth: true });
+      syncWorldRunBattleSnapshot();
+      saveWorldRunState();
+      startNewBattle({
+        preserveHealth: true,
+        preservePlayerStatus: isWorldGauntletActive(),
+      });
       return;
     }
 
     if (battleState.lastBattleWon && battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
+      if (isWorldGauntletActive()) {
+        clearBattleSession();
+        window.location.href = "worldmap.html";
+        return;
+      }
+
       battleState.dungeon.active = false;
       battleState.dungeon.floor = 0;
+      syncWorldRunBattleSnapshot();
+      saveWorldRunState();
       startNewBattle({ preserveHealth: false });
       return;
     }
+  }
+
+  if (isWorldGauntletActive()) {
+    clearBattleSession();
+    window.location.href = "worldmap.html";
+    return;
   }
 
   startNewBattle({ preserveHealth: false });
@@ -951,6 +1708,22 @@ document.getElementById("spiritualAttackBtn").addEventListener("click", () => pe
 document.getElementById("defendBtn").addEventListener("click", performDefend);
 document.getElementById("startDungeonBtn").addEventListener("click", startDungeonRun);
 document.getElementById("nextBattleBtn").addEventListener("click", handleNextBattle);
+document.getElementById("acceptRewardBtn").addEventListener("click", hideRewardPopup);
+const resetWorldRunBtn = document.getElementById("resetWorldRunBtn");
+if (resetWorldRunBtn) {
+  resetWorldRunBtn.addEventListener("click", () => {
+    resetWorldRunState();
+    addBattleLog("World run state reset (Dev).");
+  });
+}
 
 loadPlayerData();
-startNewBattle();
+loadWorldRunState();
+initializeBattleModeFromWorldState();
+syncWorldRunBattleSnapshot();
+saveWorldRunState();
+if (isWorldGauntletActive() && restoreBattleSession()) {
+  renderBattleUI();
+} else {
+  startNewBattle();
+}
