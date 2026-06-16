@@ -23,7 +23,9 @@
 }
 
 body {
-  background: #ffffff;
+  background-image: url('Images/Day.webp');
+  background-repeat: no-repeat;
+  background-size:cover;
   padding: 30px;
   color: #000000;
   font-family: 'Google Sans', Arial, sans-serif;
