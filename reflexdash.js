@@ -20,7 +20,7 @@ const WELLNESS_STATE_KEY = "wellnessState";
 const SPRITE_ASSETS = {
   player: "",
   obstacle: "Images/fork.png",
-  obstacleDouble: "",
+  obstacleDouble: "Images/Ketchup_resized.png",
 };
 
 const PLAYER_X = 72;
@@ -206,7 +206,7 @@ function createObstacle(lanes) {
   const centerY = Math.round((laneHeights[topLane] + laneHeights[bottomLane]) / 2);
   const height =
     sortedLanes.length > 1
-      ? Math.max(OBSTACLE_SIZE + 8, laneHeights[bottomLane] - laneHeights[topLane] + OBSTACLE_SIZE)
+      ? 50
       : OBSTACLE_SIZE;
 
   if (sortedLanes.length > 1) {
@@ -486,10 +486,7 @@ function bindEvents() {
       const topLane = item.lanes[0];
       const bottomLane = item.lanes[item.lanes.length - 1];
       item.y = Math.round((laneHeights[topLane] + laneHeights[bottomLane]) / 2);
-      item.height =
-        item.lanes.length > 1
-          ? Math.max(OBSTACLE_SIZE + 8, laneHeights[bottomLane] - laneHeights[topLane] + OBSTACLE_SIZE)
-          : OBSTACLE_SIZE;
+      item.height = item.lanes.length > 1 ? 300 : OBSTACLE_SIZE;
       item.element.style.height = `${item.height}px`;
     }
 

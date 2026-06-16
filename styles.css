@@ -910,6 +910,7 @@ body {
 .reflex-obstacle--double {
   background: #1e1e1e;
   border-color: #000;
+  height: 300px;
 }
 
 .reflex-player.reflex-uses-sprite {
