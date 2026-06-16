@@ -4,6 +4,7 @@ const WELLNESS_PROGRESS_KEY = "wellnessProgress";
 const WELLNESS_STATE_KEY = "wellnessState";
 const WORLD_RUN_STATE_KEY = "worldRunState";
 const BATTLE_SESSION_KEY = "battleSession";
+const BATTLE_INVENTORY_KEY = "battleInventory";
 const WORLD_RUN_STATE_VERSION = 1;
 const WORLD_START_NODE_ID = "meadow-gate";
 const BATTLE_LOG_LIMIT = 5;
@@ -20,14 +21,7 @@ const BASE_PLAYER_MAX_HEALTH = 500;
 const PLAYER_HEALTH_LEVEL_MODIFIER = 0.08;
 const MAX_STACKED_BUFF_TURNS = 6;
 const MAX_PENDING_BATTLE_HEAL = 260;
-const CONFETTI_COLORS = [
-  "#ff6b6b",
-  "#ffd93d",
-  "#6bcB77",
-  "#4d96ff",
-  "#ff9f1c",
-  "#f15bb5",
-];
+const MAX_INVENTORY_STACK = 9;
 const CONFETTI_COLORS = [
   "#ff6b6b",
   "#ffd93d",
@@ -50,23 +44,19 @@ const SPRITE_ASSETS = {
 };
 
 const PLAYER_FALLBACK_AVATAR = "(o^.^o)";
+const DEFAULT_PLAYER_PROGRESS = { level: 1, exp: 0, checkins: 0 };
+const DEFAULT_PLAYER_STATE = {
+  physical: 70,
+  mental: 70,
+  social: 70,
+  intellectual: 70,
+  spiritual: 70,
+};
 
-let playerProgress = { level: 1, exp: 0, checkins: 0 };
-let playerState = {
-  physical: 70,
-  mental: 70,
-  social: 70,
-  intellectual: 70,
-  spiritual: 70,
-};
+let playerProgress = { ...DEFAULT_PLAYER_PROGRESS };
+let playerState = { ...DEFAULT_PLAYER_STATE };
 let worldRunState = createDefaultWorldRunState();
-let playerState = {
-  physical: 70,
-  mental: 70,
-  social: 70,
-  intellectual: 70,
-  spiritual: 70,
-};
+let battleInventory = createDefaultBattleInventory();
 let battleState = {
   playerHealth: 500,
   playerMaxHealth: BASE_PLAYER_MAX_HEALTH,
@@ -239,8 +229,8 @@ const attributeSynergies = {
 const monsterAsciiMap = {
   Slime: ["  .--.  ", " ( oo ) ", "  '--'  "].join("\n"),
   Goblin: ["   ,_,   ", "   (o.o)  ", "  /|_|\\ "].join("\n"),
-  Orc: ["    ___   ", "   (O_O)  ", " /| |\\ "].join("\n"),
-  Dragon: [" /\\_/\\ ", " ( o.o )>", " \_^_/  "].join("\n"),
+  Orc: ["    ___   ", "   (O_O)  ", "  /| |\\ "].join("\n"),
+  Dragon: [" /\\_/\\ ", "  ( o.o )>", " \_^_/  "].join("\n"),
   Demon: ["  /\\_/\\ ", "  ( x.x ) ", "   <_||_>  "].join("\n"),
 };
 
@@ -327,6 +317,16 @@ function createDefaultWorldRunState() {
     pendingBattleHeal: 0,
     petCurrency: 0,
     completedRuns: 0,
+  };
+}
+
+function createDefaultBattleInventory() {
+  return {
+    healPack: 0,
+    attributeTonic: 0,
+    damageBuff: 0,
+    defenseBuff: 0,
+    regenBuff: 0,
   };
 }
 
@@ -460,7 +460,46 @@ function sanitizeWorldRunState(rawState) {
     merged.unlockedNodeIds.push(merged.currentNodeId);
   }
 
+  merged.pendingBattleHeal = clamp(
+    merged.pendingBattleHeal,
+    0,
+    MAX_PENDING_BATTLE_HEAL,
+  );
+
   return merged;
+}
+
+function sanitizeBattleInventory(rawInventory) {
+  const defaults = createDefaultBattleInventory();
+  const source = rawInventory && typeof rawInventory === "object" ? rawInventory : {};
+  return {
+    healPack: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.healPack, defaults.healPack)),
+    attributeTonic: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.attributeTonic, defaults.attributeTonic)),
+    damageBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.damageBuff, defaults.damageBuff)),
+    defenseBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.defenseBuff, defaults.defenseBuff)),
+    regenBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.regenBuff, defaults.regenBuff)),
+  };
+}
+
+function loadBattleInventory() {
+  const raw = localStorage.getItem(BATTLE_INVENTORY_KEY);
+  if (!raw) {
+    battleInventory = createDefaultBattleInventory();
+    saveBattleInventory();
+    return;
+  }
+
+  try {
+    battleInventory = sanitizeBattleInventory(JSON.parse(raw));
+  } catch {
+    battleInventory = createDefaultBattleInventory();
+  }
+
+  saveBattleInventory();
+}
+
+function saveBattleInventory() {
+  localStorage.setItem(BATTLE_INVENTORY_KEY, JSON.stringify(battleInventory));
 }
 
 function loadWorldRunState() {
@@ -688,6 +727,33 @@ function restoreBattleSession() {
       parsed.lastComboMessage || "Last Combo: None";
     battleState.returnToWorldMapNext = Boolean(parsed.returnToWorldMapNext);
     battleState.dungeon = parsed.dungeon || battleState.dungeon;
+
+    if (isWorldGauntletActive()) {
+      const expectedTotalFights = Math.max(
+        1,
+        toNonNegativeInteger(worldRunState.gauntlet.totalFights, 1),
+      );
+      const sessionDungeon =
+        battleState.dungeon && typeof battleState.dungeon === "object"
+          ? battleState.dungeon
+          : null;
+      const sessionTotalFloors = toNonNegativeInteger(
+        sessionDungeon?.totalFloors,
+        0,
+      );
+      const sessionFloor = toNonNegativeInteger(sessionDungeon?.floor, 0);
+      const validGauntletSession =
+        Boolean(sessionDungeon?.active) &&
+        sessionTotalFloors === expectedTotalFights &&
+        sessionFloor >= 1 &&
+        sessionFloor <= expectedTotalFights;
+
+      if (!validGauntletSession) {
+        clearBattleSession();
+        return false;
+      }
+    }
+
     battleState.lastBattleWon =
       typeof parsed.lastBattleWon === "boolean" ? parsed.lastBattleWon : null;
 
@@ -878,13 +944,17 @@ function isRewardPopupOpen() {
 function showRewardPopup(packageData) {
   const modal = document.getElementById("gauntletRewardModal");
   if (!modal || !packageData) {
-    return;
+    return false;
   }
 
   const title = document.getElementById("rewardModalTitle");
   const summary = document.getElementById("rewardModalSummary");
   const list = document.getElementById("rewardModalList");
   const nextButton = document.getElementById("nextBattleBtn");
+
+  if (!title || !summary || !list) {
+    return false;
+  }
 
   title.textContent = packageData.title;
   summary.textContent = packageData.summary;
@@ -897,10 +967,11 @@ function showRewardPopup(packageData) {
   }
 
   if (nextButton) {
-    nextButton.disabled = true;
+    nextButton.disabled = false;
   }
 
   modal.hidden = false;
+  return true;
 }
 
 function hideRewardPopup() {
@@ -912,6 +983,11 @@ function hideRewardPopup() {
   if (nextButton) {
     nextButton.disabled = false;
   }
+}
+
+function claimRewardAndContinue() {
+  hideRewardPopup();
+  handleNextBattle();
 }
 
 function loadSprite(path) {
@@ -973,13 +1049,52 @@ function getEnemySpritePath(enemyName) {
 }
 
 function getScaledSynergyEnergyRestore() {
-  return Math.min(12, 4 + Math.floor(state.level / 5));
+  return Math.min(12, 4 + Math.floor(playerProgress.level / 5));
 }
 
 function getScaledSynergyHeal() {
-  const byLevel = 16 + state.level * 2;
+  const byLevel = 16 + playerProgress.level * 2;
   const byMaxHealth = Math.round(battleState.playerMaxHealth * 0.08);
   return Math.max(byLevel, byMaxHealth);
+}
+
+function sanitizePlayerProgress(rawProgress) {
+  const source =
+    rawProgress && typeof rawProgress === "object" ? rawProgress : {};
+  const level = Number.isFinite(source.level)
+    ? Math.max(1, Math.floor(source.level))
+    : DEFAULT_PLAYER_PROGRESS.level;
+  const expCap = Math.max(0, expRequiredForLevel(level) - 1);
+  return {
+    level,
+    exp: Number.isFinite(source.exp)
+      ? clamp(Math.floor(source.exp), 0, expCap)
+      : DEFAULT_PLAYER_PROGRESS.exp,
+    checkins: Number.isFinite(source.checkins)
+      ? Math.max(0, Math.floor(source.checkins))
+      : DEFAULT_PLAYER_PROGRESS.checkins,
+  };
+}
+
+function sanitizePlayerState(rawState) {
+  const source = rawState && typeof rawState === "object" ? rawState : {};
+  return {
+    physical: Number.isFinite(source.physical)
+      ? clamp(Math.round(source.physical), 0, 100)
+      : DEFAULT_PLAYER_STATE.physical,
+    mental: Number.isFinite(source.mental)
+      ? clamp(Math.round(source.mental), 0, 100)
+      : DEFAULT_PLAYER_STATE.mental,
+    social: Number.isFinite(source.social)
+      ? clamp(Math.round(source.social), 0, 100)
+      : DEFAULT_PLAYER_STATE.social,
+    intellectual: Number.isFinite(source.intellectual)
+      ? clamp(Math.round(source.intellectual), 0, 100)
+      : DEFAULT_PLAYER_STATE.intellectual,
+    spiritual: Number.isFinite(source.spiritual)
+      ? clamp(Math.round(source.spiritual), 0, 100)
+      : DEFAULT_PLAYER_STATE.spiritual,
+  };
 }
 
 function expRequiredForLevel(level) {
@@ -996,7 +1111,7 @@ function calculatePlayerMaxHealth(level) {
 
 function syncPlayerMaxHealthWithLevel() {
   const previousMax = battleState.playerMaxHealth;
-  const newMax = calculatePlayerMaxHealth(state.level);
+  const newMax = calculatePlayerMaxHealth(playerProgress.level);
   const healthDelta = newMax - previousMax;
 
   battleState.playerMaxHealth = newMax;
@@ -1016,33 +1131,199 @@ function loadPlayerData() {
 
   if (progressRaw) {
     try {
-      playerProgress = JSON.parse(progressRaw);
+      playerProgress = sanitizePlayerProgress(JSON.parse(progressRaw));
     } catch {
-      playerProgress = { level: 1, exp: 0, checkins: 0 };
+      playerProgress = { ...DEFAULT_PLAYER_PROGRESS };
     }
+  } else {
+    playerProgress = { ...DEFAULT_PLAYER_PROGRESS };
   }
 
   if (stateRaw) {
     try {
-      playerState = JSON.parse(stateRaw);
+      playerState = sanitizePlayerState(JSON.parse(stateRaw));
     } catch {
-      playerState = {
-        physical: 70,
-        mental: 70,
-        social: 70,
-        intellectual: 70,
-        spiritual: 70,
-      };
+      playerState = { ...DEFAULT_PLAYER_STATE };
     }
+  } else {
+    playerState = { ...DEFAULT_PLAYER_STATE };
   }
 
   syncPlayerMaxHealthWithLevel();
+}
+
+function addExp(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+
+  playerProgress.exp += Math.floor(amount);
+  while (playerProgress.exp >= expRequiredForLevel(playerProgress.level)) {
+    playerProgress.exp -= expRequiredForLevel(playerProgress.level);
+    playerProgress.level += 1;
+  }
 }
 
 function savePlayerData() {
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(playerState));
   localStorage.setItem(WELLNESS_PROGRESS_KEY, JSON.stringify(playerProgress));
   saveWorldRunState();
+}
+
+function setInventoryFeedback(message) {
+  const feedback = document.getElementById("inventoryFeedback");
+  if (feedback) {
+    feedback.textContent = message;
+  }
+}
+
+function canUseInventoryItem(itemKey) {
+  if (!battleState.currentEnemy || !battleState.isPlayerTurn) {
+    return false;
+  }
+
+  if (toNonNegativeInteger(battleInventory[itemKey], 0) <= 0) {
+    return false;
+  }
+
+  if (itemKey === "healPack" && battleState.playerHealth >= battleState.playerMaxHealth) {
+    return false;
+  }
+
+  if (itemKey === "damageBuff" && worldRunState.activeBuffs.damageBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+    return false;
+  }
+
+  if (itemKey === "defenseBuff" && worldRunState.activeBuffs.defenseBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+    return false;
+  }
+
+  if (itemKey === "regenBuff" && worldRunState.activeBuffs.regenBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+    return false;
+  }
+
+  return true;
+}
+
+function consumeInventoryItem(itemKey) {
+  battleInventory[itemKey] = Math.max(
+    0,
+    toNonNegativeInteger(battleInventory[itemKey], 0) - 1,
+  );
+}
+
+function useInventoryItem(itemKey) {
+  if (!battleState.currentEnemy || !battleState.isPlayerTurn) {
+    setInventoryFeedback("Use items during your turn in an active battle.");
+    renderBattleUI();
+    return;
+  }
+
+  if (toNonNegativeInteger(battleInventory[itemKey], 0) <= 0) {
+    setInventoryFeedback("You do not have that item.");
+    renderBattleUI();
+    return;
+  }
+
+  if (itemKey === "healPack") {
+    if (battleState.playerHealth >= battleState.playerMaxHealth) {
+      setInventoryFeedback("Heal Pack cannot be used at full health.");
+      renderBattleUI();
+      return;
+    }
+    const healAmount = randomInt(90, 130);
+    const before = battleState.playerHealth;
+    battleState.playerHealth = Math.min(
+      battleState.playerMaxHealth,
+      battleState.playerHealth + healAmount,
+    );
+    const healed = battleState.playerHealth - before;
+    consumeInventoryItem(itemKey);
+    saveBattleInventory();
+    addBattleLog(`Heal Pack restores ${healed} health.`);
+    showCombatText({ target: "player", value: healed, type: "heal" });
+    setInventoryFeedback(`Used Heal Pack: +${healed} health.`);
+    renderBattleUI();
+    return;
+  }
+
+  if (itemKey === "attributeTonic") {
+    const keys = ["physical", "mental", "social", "intellectual", "spiritual"];
+    const key = keys[randomInt(0, keys.length - 1)];
+    const amount = randomInt(15, 24);
+    playerState[key] = Math.min(100, playerState[key] + amount);
+    consumeInventoryItem(itemKey);
+    saveBattleInventory();
+    addBattleLog(`Attribute Tonic restores ${amount} ${formatAttributeName(key)}.`);
+    setInventoryFeedback(`Used Attribute Tonic: +${amount} ${formatAttributeName(key)}.`);
+    renderBattleUI();
+    return;
+  }
+
+  if (itemKey === "damageBuff") {
+    if (worldRunState.activeBuffs.damageBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+      setInventoryFeedback("Damage Buff is already at max turns.");
+      renderBattleUI();
+      return;
+    }
+    addCappedBuffTurns("damageBoostTurns", 2);
+    consumeInventoryItem(itemKey);
+    saveBattleInventory();
+    setInventoryFeedback("Used Damage Buff: +2 turns.");
+    renderBattleUI();
+    return;
+  }
+
+  if (itemKey === "defenseBuff") {
+    if (worldRunState.activeBuffs.defenseBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+      setInventoryFeedback("Defense Buff is already at max turns.");
+      renderBattleUI();
+      return;
+    }
+    addCappedBuffTurns("defenseBoostTurns", 2);
+    consumeInventoryItem(itemKey);
+    saveBattleInventory();
+    setInventoryFeedback("Used Defense Buff: +2 turns.");
+    renderBattleUI();
+    return;
+  }
+
+  if (itemKey === "regenBuff") {
+    if (worldRunState.activeBuffs.regenBoostTurns >= MAX_STACKED_BUFF_TURNS) {
+      setInventoryFeedback("Regen Buff is already at max turns.");
+      renderBattleUI();
+      return;
+    }
+    addCappedBuffTurns("regenBoostTurns", 2);
+    consumeInventoryItem(itemKey);
+    saveBattleInventory();
+    setInventoryFeedback("Used Regen Buff: +2 turns.");
+    renderBattleUI();
+  }
+}
+
+function renderBattleInventory() {
+  const buttonMap = {
+    useHealPackBtn: { key: "healPack", label: "Use Heal Pack" },
+    useAttributeTonicBtn: { key: "attributeTonic", label: "Use Attribute Tonic" },
+    useDamageBuffBtn: { key: "damageBuff", label: "Use Damage Buff" },
+    useDefenseBuffBtn: { key: "defenseBuff", label: "Use Defense Buff" },
+    useRegenBuffBtn: { key: "regenBuff", label: "Use Regen Buff" },
+  };
+
+  const buttonIds = Object.keys(buttonMap);
+  for (let i = 0; i < buttonIds.length; i += 1) {
+    const id = buttonIds[i];
+    const config = buttonMap[id];
+    const button = document.getElementById(id);
+    if (!button) {
+      continue;
+    }
+
+    const count = toNonNegativeInteger(battleInventory[config.key], 0);
+    button.textContent = `${config.label} (${count})`;
+    button.disabled = !canUseInventoryItem(config.key);
+  }
 }
 
 function rainConfetti(options = {}) {
@@ -1301,11 +1582,6 @@ function planNextEnemyIntent() {
         specialMove.multiplier *
         scales.damageScale,
     );
-    const randomAttr =
-      attributes[Math.floor(Math.random() * attributes.length)];
-    let damage = Math.round(
-      calculatePetStats(randomAttr) * specialMove.multiplier,
-    );
 
     if (battleState.enemyStatus.weakenedTurns > 0) {
       damage = Math.round(damage * 0.5);
@@ -1352,7 +1628,7 @@ function planNextEnemyIntent() {
 
 function calculatePetStats(attribute) {
   const baseAttribute = playerState[attribute] || 70;
-  return Math.round((baseAttribute / 100) * state.level * 20);
+  return Math.round((baseAttribute / 100) * playerProgress.level * 20);
 }
 
 function getUnlockedMonsterIndexForLevel(level) {
@@ -1410,30 +1686,13 @@ function generateMonster() {
       ((scales.healthScale + scales.damageScale) / 2)
     ).toFixed(2),
   );
-  function generateMonster() {
-    const strongestUnlockedIndex = getUnlockedMonsterIndexForLevel(state.level);
-    let selectedIndex = strongestUnlockedIndex;
 
-    if (
-      battleState.dungeon.active &&
-      battleState.dungeon.floor < battleState.dungeon.totalFloors
-    ) {
-      if (strongestUnlockedIndex > 0) {
-        selectedIndex = Math.floor(Math.random() * strongestUnlockedIndex);
-      }
-    }
-
-    const selected = monsters[selectedIndex];
-
-    const health = Math.round(selected.baseHealth * (1 + state.level * 0.1));
-
-    return {
-      name: selected.name,
-      maxHealth: health,
-      health: health,
-      difficulty,
-    };
-  }
+  return {
+    name: selected.name,
+    maxHealth: health,
+    health,
+    difficulty,
+  };
 }
 
 function getAttackCost(attribute) {
@@ -1605,13 +1864,8 @@ function renderBattleUI() {
     PLAYER_FALLBACK_AVATAR,
   );
   playerAvatar.setAttribute("aria-label", playerAvatarConfig.alt);
-  applyAvatarSpriteWithFallback(
-    playerAvatar,
-    SPRITE_ASSETS.player,
-    PLAYER_FALLBACK_AVATAR,
-  );
 
-  document.getElementById("playerLevel").textContent = `Level ${state.level}`;
+  document.getElementById("playerLevel").textContent = `Level ${playerProgress.level}`;
   document.getElementById("playerPhysical").textContent =
     calculatePetStats("physical");
   document.getElementById("playerMental").textContent =
@@ -1656,9 +1910,6 @@ function renderBattleUI() {
     ? "Your Turn"
     : "Enemy Attacking...";
   document.getElementById("comboResult").textContent = getComboResultText();
-  document.getElementById("battleStatus").textContent = battleState.isPlayerTurn
-    ? "Your Turn"
-    : "Enemy Attacking...";
   document.getElementById("comboSeedHint").textContent = getComboSeedHint();
   document.getElementById("dungeonStatus").textContent = getDungeonStatusText();
   document.getElementById("worldRunStatus").textContent =
@@ -1676,6 +1927,8 @@ function renderBattleUI() {
         : "Start Dungeon Run";
     }
   }
+
+  renderBattleInventory();
 
   savePlayerData();
   saveBattleSession();
@@ -1804,12 +2057,6 @@ function enemyTurn() {
       addBattleLog("Defense Boost softens incoming damage!");
     }
 
-    if (worldRunState.activeBuffs.defenseBoostTurns > 0) {
-      actualDamage = Math.round(actualDamage * 0.76);
-      worldRunState.activeBuffs.defenseBoostTurns -= 1;
-      addBattleLog("Defense Boost softens incoming damage!");
-    }
-
     battleState.playerHealth = Math.max(
       0,
       battleState.playerHealth - actualDamage,
@@ -1839,16 +2086,14 @@ function endBattle(playerWon) {
   const isWorldGauntlet = isWorldGauntletActive();
 
   if (playerWon) {
-    const levelBefore = state.level;
+    const levelBefore = playerProgress.level;
     const baseExp = Math.round(100 * battleState.currentEnemy.difficulty);
     const bonus = Math.round(baseExp * 0.5);
     const totalExp = baseExp + bonus;
 
     addExp(totalExp);
-    playerProgress.level = state.level;
-
     syncPlayerMaxHealthWithLevel();
-    const levelsGained = state.level - levelBefore;
+    const levelsGained = playerProgress.level - levelBefore;
     if (levelsGained > 0) {
       rainConfetti({ count: 100 + levelsGained * 15, duration: 2300 });
       showLevelUpBanner(levelsGained);
@@ -1858,121 +2103,95 @@ function endBattle(playerWon) {
     }
 
     battleState.lastBattleWon = true;
+    addBattleLog(`Victory! Gained ${totalExp} EXP!`);
 
-    if (
-      battleState.dungeon.active &&
-      battleState.dungeon.floor < battleState.dungeon.totalFloors &&
-      !isWorldGauntlet
-    ) {
-      if (
-        battleState.dungeon.active &&
-        battleState.dungeon.floor < battleState.dungeon.totalFloors
-      ) {
+    if (battleState.dungeon.active && !isWorldGauntlet) {
+      if (battleState.dungeon.floor < battleState.dungeon.totalFloors) {
         applyDungeonRecovery();
-      }
-
-      addBattleLog(`Victory! Gained ${totalExp} EXP!`);
-      if (battleState.dungeon.active) {
-        if (isWorldGauntlet) {
-          const finalGauntletFight =
-            battleState.dungeon.floor >= battleState.dungeon.totalFloors;
-          const rewardPack = rollGauntletRewards({
-            finalFight: finalGauntletFight,
-          });
-          showRewardPopup(rewardPack);
-        }
-
-        if (battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
-          if (isWorldGauntlet) {
-            const nodeId =
-              worldRunState.gauntlet.nodeId || worldRunState.currentNodeId;
-            completeWorldNodeProgression(nodeId);
-            worldRunState.completedRuns += 1;
-            clearActiveWorldGauntlet();
-            battleState.returnToWorldMapNext = true;
-            battleState.dungeon.active = false;
-            battleState.dungeon.floor = 0;
-            document.getElementById("rewardsTitle").textContent =
-              "World Node Cleared!";
-            document.getElementById("rewardExp").textContent =
-              `Gauntlet complete! Gained ${totalExp} EXP (+${bonus} Battle Bonus). Rewards granted. Returning to world map.`;
-            document.getElementById("nextBattleBtn").textContent =
-              "Return to World Map";
-          } else {
-            document.getElementById("rewardsTitle").textContent =
-              "Dungeon Cleared!";
-            document.getElementById("rewardExp").textContent =
-              `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
-            document.getElementById("nextBattleBtn").textContent =
-              "Return to Arena";
-          }
-        } else if (isWorldGauntlet) {
-          document.getElementById("rewardsTitle").textContent =
-            "Fight Cleared!";
-          document.getElementById("rewardExp").textContent =
-            `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Random reward granted. HP and buffs carry to the next fight.`;
-          document.getElementById("nextBattleBtn").textContent =
-            "Next Gauntlet Fight";
-          document.getElementById("rewardsTitle").textContent =
-            "Dungeon Cleared!";
-          document.getElementById("rewardExp").textContent =
-            `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
-          document.getElementById("nextBattleBtn").textContent =
-            "Return to Arena";
-        } else {
-          document.getElementById("rewardsTitle").textContent =
-            "Floor Cleared!";
-          document.getElementById("rewardExp").textContent =
-            `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
-          document.getElementById("nextBattleBtn").textContent =
-            "Next Dungeon Floor";
-        }
-      } else {
-        document.getElementById("rewardsTitle").textContent = "Battle Won!";
-        document.getElementById("rewardExp").textContent =
-          `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
-        document.getElementById("nextBattleBtn").textContent = "Next Battle";
-      }
-    } else {
-      battleState.lastBattleWon = false;
-      addBattleLog("Defeated! Your pet needs rest.");
-      if (battleState.dungeon.active) {
-        if (isWorldGauntlet) {
-          clearActiveWorldGauntlet();
-          battleState.returnToWorldMapNext = true;
-          document.getElementById("rewardsTitle").textContent =
-            "World Node Failed";
-          document.getElementById("rewardExp").textContent =
-            "Gauntlet failed. Return to world map to pick your next challenge.";
-          document.getElementById("nextBattleBtn").textContent =
-            "Return to World Map";
-        } else {
-          document.getElementById("rewardsTitle").textContent =
-            "Dungeon Failed";
-          document.getElementById("rewardExp").textContent =
-            "Dungeon run ended. Start a new dungeon to reset and try again.";
-          document.getElementById("nextBattleBtn").textContent =
-            "Return to Arena";
-        }
-        document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
-        document.getElementById("rewardExp").textContent =
-          "Dungeon run ended. Start a new dungeon to reset and try again.";
-        document.getElementById("nextBattleBtn").textContent =
-          "Return to Arena";
-        battleState.dungeon.active = false;
-        battleState.dungeon.floor = 0;
-      } else {
-        document.getElementById("rewardsTitle").textContent = "Defeated!";
-        document.getElementById("rewardExp").textContent =
-          `Battle Lost. Return to wellness!`;
-        document.getElementById("nextBattleBtn").textContent = "Next Battle";
       }
     }
 
-    savePlayerData();
-    rewardsSection.hidden = false;
-    renderBattleUI();
+    if (battleState.dungeon.active && isWorldGauntlet) {
+      const finalGauntletFight =
+        battleState.dungeon.floor >= battleState.dungeon.totalFloors;
+      const rewardPack = rollGauntletRewards({ finalFight: finalGauntletFight });
+      const popupShown = showRewardPopup(rewardPack);
+      if (!popupShown) {
+        addBattleLog("Reward popup unavailable. Rewards were still granted.");
+      }
+    }
+
+    if (battleState.dungeon.active) {
+      if (battleState.dungeon.floor >= battleState.dungeon.totalFloors) {
+        if (isWorldGauntlet) {
+          const nodeId = worldRunState.gauntlet.nodeId || worldRunState.currentNodeId;
+          completeWorldNodeProgression(nodeId);
+          worldRunState.completedRuns += 1;
+          clearActiveWorldGauntlet();
+          battleState.returnToWorldMapNext = true;
+          battleState.dungeon.active = false;
+          battleState.dungeon.floor = 0;
+          document.getElementById("rewardsTitle").textContent = "World Node Cleared!";
+          document.getElementById("rewardExp").textContent =
+            `Gauntlet complete! Gained ${totalExp} EXP (+${bonus} Battle Bonus). Rewards granted. Returning to world map.`;
+          document.getElementById("nextBattleBtn").textContent =
+            "Return to World Map";
+        } else {
+          document.getElementById("rewardsTitle").textContent = "Dungeon Cleared!";
+          document.getElementById("rewardExp").textContent =
+            `Final floor cleared! Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+          document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+        }
+      } else if (isWorldGauntlet) {
+        document.getElementById("rewardsTitle").textContent = "Fight Cleared!";
+        document.getElementById("rewardExp").textContent =
+          `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Random reward granted. HP and buffs carry to the next fight.`;
+        document.getElementById("nextBattleBtn").textContent =
+          "Next Gauntlet Fight";
+      } else {
+        document.getElementById("rewardsTitle").textContent = "Floor Cleared!";
+        document.getElementById("rewardExp").textContent =
+          `Gained ${totalExp} EXP (+${bonus} Battle Bonus). Recovery applied for next floor.`;
+        document.getElementById("nextBattleBtn").textContent = "Next Dungeon Floor";
+      }
+    } else {
+      document.getElementById("rewardsTitle").textContent = "Battle Won!";
+      document.getElementById("rewardExp").textContent =
+        `Gained ${totalExp} EXP (+${bonus} Battle Bonus)`;
+      document.getElementById("nextBattleBtn").textContent = "Next Battle";
+    }
+  } else {
+    battleState.lastBattleWon = false;
+    addBattleLog("Defeated! Your pet needs rest.");
+
+    if (battleState.dungeon.active) {
+      if (isWorldGauntlet) {
+        clearActiveWorldGauntlet();
+        battleState.returnToWorldMapNext = true;
+        document.getElementById("rewardsTitle").textContent = "World Node Failed";
+        document.getElementById("rewardExp").textContent =
+          "Gauntlet failed. Return to world map to pick your next challenge.";
+        document.getElementById("nextBattleBtn").textContent =
+          "Return to World Map";
+      } else {
+        document.getElementById("rewardsTitle").textContent = "Dungeon Failed";
+        document.getElementById("rewardExp").textContent =
+          "Dungeon run ended. Start a new dungeon to reset and try again.";
+        document.getElementById("nextBattleBtn").textContent = "Return to Arena";
+      }
+      battleState.dungeon.active = false;
+      battleState.dungeon.floor = 0;
+    } else {
+      document.getElementById("rewardsTitle").textContent = "Defeated!";
+      document.getElementById("rewardExp").textContent =
+        "Battle Lost. Return to wellness!";
+      document.getElementById("nextBattleBtn").textContent = "Next Battle";
+    }
   }
+
+  savePlayerData();
+  rewardsSection.hidden = false;
+  renderBattleUI();
 }
 
 function startNewBattle(options = {}) {
@@ -1993,12 +2212,6 @@ function startNewBattle(options = {}) {
   if (!preservePlayerStatus) {
     battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
   }
-  battleState.enemyStatus = {
-    stunnedTurns: 0,
-    weakenedTurns: 0,
-    vulnerableTurns: 0,
-  };
-  battleState.playerStatus = { regenTurns: 0, focusTurns: 0 };
   battleState.enemyStatus = {
     stunnedTurns: 0,
     weakenedTurns: 0,
@@ -2037,7 +2250,7 @@ function startDungeonRun() {
 
 function handleNextBattle() {
   if (isRewardPopupOpen()) {
-    return;
+    hideRewardPopup();
   }
 
   if (battleState.returnToWorldMapNext) {
@@ -2107,6 +2320,11 @@ function handleNextBattle() {
     }
 
     startNewBattle({ preserveHealth: false });
+    return;
+  }
+
+  if (battleState.lastBattleWon) {
+    startNewBattle({ preserveHealth: false });
   }
 }
 
@@ -2134,7 +2352,22 @@ document
   .addEventListener("click", handleNextBattle);
 document
   .getElementById("acceptRewardBtn")
-  .addEventListener("click", hideRewardPopup);
+  .addEventListener("click", claimRewardAndContinue);
+document
+  .getElementById("useHealPackBtn")
+  .addEventListener("click", () => useInventoryItem("healPack"));
+document
+  .getElementById("useAttributeTonicBtn")
+  .addEventListener("click", () => useInventoryItem("attributeTonic"));
+document
+  .getElementById("useDamageBuffBtn")
+  .addEventListener("click", () => useInventoryItem("damageBuff"));
+document
+  .getElementById("useDefenseBuffBtn")
+  .addEventListener("click", () => useInventoryItem("defenseBuff"));
+document
+  .getElementById("useRegenBuffBtn")
+  .addEventListener("click", () => useInventoryItem("regenBuff"));
 const resetWorldRunBtn = document.getElementById("resetWorldRunBtn");
 if (resetWorldRunBtn) {
   resetWorldRunBtn.addEventListener("click", () => {
@@ -2142,15 +2375,10 @@ if (resetWorldRunBtn) {
     addBattleLog("World run state reset (Dev).");
   });
 }
-document
-  .getElementById("startDungeonBtn")
-  .addEventListener("click", startDungeonRun);
-document
-  .getElementById("nextBattleBtn")
-  .addEventListener("click", handleNextBattle);
 
 loadPlayerData();
 loadWorldRunState();
+loadBattleInventory();
 initializeBattleModeFromWorldState();
 syncWorldRunBattleSnapshot();
 saveWorldRunState();

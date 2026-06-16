@@ -1712,6 +1712,29 @@ body {
   justify-content: center;
 }
 
+.battle-inventory {
+  padding: 16px 30px;
+  border-top: 2px solid var(--line);
+  background: #f9fbff;
+  display: grid;
+  gap: 10px;
+}
+
+.battle-inventory h2 {
+  font-size: 20px;
+}
+
+.battle-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.battle-inventory .secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .battle-rewards {
   padding: 20px 30px;
   text-align: center;

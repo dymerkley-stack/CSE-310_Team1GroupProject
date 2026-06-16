@@ -1,5 +1,7 @@
 const WORLD_RUN_STATE_KEY = "worldRunState";
 const WELLNESS_STATE_KEY = "wellnessState";
+const BATTLE_INVENTORY_KEY = "battleInventory";
+const BATTLE_SESSION_KEY = "battleSession";
 const WORLD_RUN_STATE_VERSION = 1;
 const WORLD_START_NODE_ID = "meadow-gate";
 
@@ -14,6 +16,7 @@ const WORLD_NODES = [
 
 let worldRunState = createDefaultWorldRunState();
 let wellnessState = createDefaultWellnessState();
+let battleInventory = createDefaultBattleInventory();
 let selectedNodeId = null;
 
 const SHOP_ITEMS = {
@@ -26,6 +29,7 @@ const SHOP_ITEMS = {
 
 const MAX_WORLD_BUFF_TURNS = 6;
 const MAX_PENDING_BATTLE_HEAL = 260;
+const MAX_INVENTORY_STACK = 9;
 
 function createDefaultWellnessState() {
   return {
@@ -65,6 +69,16 @@ function createDefaultWorldRunState() {
     pendingBattleHeal: 0,
     petCurrency: 0,
     completedRuns: 0,
+  };
+}
+
+function createDefaultBattleInventory() {
+  return {
+    healPack: 0,
+    attributeTonic: 0,
+    damageBuff: 0,
+    defenseBuff: 0,
+    regenBuff: 0,
   };
 }
 
@@ -139,6 +153,39 @@ function sanitizeWorldRunState(rawState) {
 
 function saveWorldRunState() {
   localStorage.setItem(WORLD_RUN_STATE_KEY, JSON.stringify(worldRunState));
+}
+
+function sanitizeBattleInventory(rawInventory) {
+  const defaults = createDefaultBattleInventory();
+  const source = rawInventory && typeof rawInventory === "object" ? rawInventory : {};
+  return {
+    healPack: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.healPack, defaults.healPack)),
+    attributeTonic: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.attributeTonic, defaults.attributeTonic)),
+    damageBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.damageBuff, defaults.damageBuff)),
+    defenseBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.defenseBuff, defaults.defenseBuff)),
+    regenBuff: Math.min(MAX_INVENTORY_STACK, toNonNegativeInteger(source.regenBuff, defaults.regenBuff)),
+  };
+}
+
+function loadBattleInventory() {
+  const raw = localStorage.getItem(BATTLE_INVENTORY_KEY);
+  if (!raw) {
+    battleInventory = createDefaultBattleInventory();
+    saveBattleInventory();
+    return;
+  }
+
+  try {
+    battleInventory = sanitizeBattleInventory(JSON.parse(raw));
+  } catch {
+    battleInventory = createDefaultBattleInventory();
+  }
+
+  saveBattleInventory();
+}
+
+function saveBattleInventory() {
+  localStorage.setItem(BATTLE_INVENTORY_KEY, JSON.stringify(battleInventory));
 }
 
 function loadWellnessState() {
@@ -254,19 +301,7 @@ function canBuyItem(itemKey) {
     return false;
   }
 
-  if (itemKey === "healPack" && worldRunState.pendingBattleHeal >= MAX_PENDING_BATTLE_HEAL) {
-    return false;
-  }
-
-  if (itemKey === "damageBuff" && worldRunState.activeBuffs.damageBoostTurns >= MAX_WORLD_BUFF_TURNS) {
-    return false;
-  }
-
-  if (itemKey === "defenseBuff" && worldRunState.activeBuffs.defenseBoostTurns >= MAX_WORLD_BUFF_TURNS) {
-    return false;
-  }
-
-  if (itemKey === "regenBuff" && worldRunState.activeBuffs.regenBoostTurns >= MAX_WORLD_BUFF_TURNS) {
+  if (toNonNegativeInteger(battleInventory[itemKey], 0) >= MAX_INVENTORY_STACK) {
     return false;
   }
 
@@ -288,37 +323,9 @@ function spendCoins(itemKey) {
   return true;
 }
 
-function applyAttributeTonic() {
-  const keys = ["physical", "mental", "social", "intellectual", "spiritual"];
-  const key = keys[randomInt(0, keys.length - 1)];
-  const amount = randomInt(15, 24);
-  wellnessState[key] = Math.min(100, wellnessState[key] + amount);
-  return `Attribute Tonic restored ${amount} ${key}.`;
-}
-
-function applyHealPack() {
-  const amount = randomInt(90, 130);
-  const before = worldRunState.pendingBattleHeal;
-  worldRunState.pendingBattleHeal = Math.min(MAX_PENDING_BATTLE_HEAL, worldRunState.pendingBattleHeal + amount);
-  const gained = worldRunState.pendingBattleHeal - before;
-  return gained > 0
-    ? `Heal Pack stored +${gained} battle heal for your next damaged fight.`
-    : "Heal Pack reserve is already capped.";
-}
-
 function purchaseShopItem(itemKey) {
   if (!canBuyItem(itemKey)) {
-    if (itemKey === "healPack") {
-      setShopFeedback("Heal Pack reserve is capped. Use some in battle first.");
-    } else if (itemKey === "damageBuff") {
-      setShopFeedback("Damage Buff turns are capped right now.");
-    } else if (itemKey === "defenseBuff") {
-      setShopFeedback("Defense Buff turns are capped right now.");
-    } else if (itemKey === "regenBuff") {
-      setShopFeedback("Regen Buff turns are capped right now.");
-    } else {
-      setShopFeedback("You cannot buy this item right now.");
-    }
+    setShopFeedback("Inventory stack is full for this item.");
 
     renderAll();
     return;
@@ -329,33 +336,13 @@ function purchaseShopItem(itemKey) {
     return;
   }
 
-  let message = "Purchase complete.";
+  battleInventory[itemKey] = Math.min(
+    MAX_INVENTORY_STACK,
+    toNonNegativeInteger(battleInventory[itemKey], 0) + 1,
+  );
+  const message = `${SHOP_ITEMS[itemKey].label} added to inventory. Owned: ${battleInventory[itemKey]}.`;
 
-  if (itemKey === "healPack") {
-    message = applyHealPack();
-  } else if (itemKey === "attributeTonic") {
-    message = applyAttributeTonic();
-  } else if (itemKey === "damageBuff") {
-    worldRunState.activeBuffs.damageBoostTurns = Math.min(
-      MAX_WORLD_BUFF_TURNS,
-      worldRunState.activeBuffs.damageBoostTurns + 2,
-    );
-    message = `Battle Damage Buff purchased: now ${worldRunState.activeBuffs.damageBoostTurns} turns queued.`;
-  } else if (itemKey === "defenseBuff") {
-    worldRunState.activeBuffs.defenseBoostTurns = Math.min(
-      MAX_WORLD_BUFF_TURNS,
-      worldRunState.activeBuffs.defenseBoostTurns + 2,
-    );
-    message = `Battle Defense Buff purchased: now ${worldRunState.activeBuffs.defenseBoostTurns} turns queued.`;
-  } else if (itemKey === "regenBuff") {
-    worldRunState.activeBuffs.regenBoostTurns = Math.min(
-      MAX_WORLD_BUFF_TURNS,
-      worldRunState.activeBuffs.regenBoostTurns + 2,
-    );
-    message = `Battle Regen Buff purchased: now ${worldRunState.activeBuffs.regenBoostTurns} turns queued.`;
-  }
-
-  saveWellnessState();
+  saveBattleInventory();
   saveWorldRunState();
   setShopFeedback(message);
   renderAll();
@@ -383,7 +370,9 @@ function renderShop() {
     if (!btn) {
       continue;
     }
+    const owned = toNonNegativeInteger(battleInventory[key], 0);
     btn.disabled = !canBuyItem(key);
+    btn.textContent = `${SHOP_ITEMS[key].label} (${SHOP_ITEMS[key].cost} Coins) | Owned ${owned}/${MAX_INVENTORY_STACK}`;
   }
 }
 
@@ -510,6 +499,7 @@ function handleChallengeSelectedNode() {
     completedFights: 0,
   };
   saveWorldRunState();
+  localStorage.removeItem(BATTLE_SESSION_KEY);
   window.location.href = "battle.html";
 }
 
@@ -539,6 +529,7 @@ function renderAll() {
 function init() {
   loadWellnessState();
   loadWorldRunState();
+  loadBattleInventory();
   syncNodeUnlocksFromCompletion();
 
   if (isNodeUnlocked(worldRunState.currentNodeId)) {
