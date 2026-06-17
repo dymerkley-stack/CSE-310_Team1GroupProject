@@ -1,66 +1,52 @@
 import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
 
-const arena = document.getElementById("bathArena");
-const pet = document.getElementById("bathPet");
-const spotsLayer = document.getElementById("bathSpotsLayer");
-const tempNeedle = document.getElementById("bathTempNeedle");
-const sponge = document.getElementById("bathSponge");
+const arena = document.getElementById("harvestArena");
+const playerSpud = document.getElementById("playerSpud");
+const miniSpudsLayer = document.getElementById("miniSpudsLayer");
 
-const scoreText = document.getElementById("bathScore");
-const bestText = document.getElementById("bathBest");
-const timeText = document.getElementById("bathTime");
-const tempText = document.getElementById("bathTemp");
-const statusText = document.getElementById("bathStatus");
+const scoreText = document.getElementById("harvestScore");
+const bestText = document.getElementById("harvestBest");
+const timeText = document.getElementById("harvestTime");
+const sizeText = document.getElementById("harvestSize");
+const statusText = document.getElementById("harvestStatus");
 
-const coolBtn = document.getElementById("coolBathBtn");
-const heatBtn = document.getElementById("heatBathBtn");
-const startBtn = document.getElementById("startBathBtn");
-const claimRewardBtn = document.getElementById("claimBathRewardBtn");
+const startBtn = document.getElementById("startHarvestBtn");
+const claimRewardBtn = document.getElementById("claimHarvestRewardBtn");
 
-const BEST_SCORE_KEY = "bathTimeBalanceBestScore";
+const BEST_SCORE_KEY = "potatoHarvestBestScore";
 const WELLNESS_STATE_KEY = "wellnessState";
 
-// Optional sprite paths. Leave empty strings to keep fallback placeholders.
 const SPRITE_ASSETS = {
-  pet: "",
-  dirtSpot: "",
-  sponge: "",
+  playerSpud: "",
 };
 
 const RUN_DURATION_SECONDS = 50;
-const TEMP_MIN = 0;
-const TEMP_MAX = 100;
-const COMFORT_MIN = 42;
-const COMFORT_MAX = 58;
-const MAX_SPOTS = 5;
-const SPOT_SIZE = 36;
-const SPOT_SCRUB_REQUIRED_SECONDS = 0.45;
-const SPOT_PROGRESS_VISIBLE_SECONDS = 0.4;
-const SPONGE_WIDTH = 62;
-const SPONGE_HEIGHT = 40;
-const SPONGE_TOP_LIMIT = 72;
-const BASE_SPAWN_INTERVAL = 1.35;
-const TEMP_EDGE_WARNING_PADDING = 10;
-const TEMP_WARNING_FLASH_DURATION = 220;
+const MAX_MINI_SPUDS = 6;
+const MINI_SPUD_SIZE = 30;
+const SPUD_BASE_WIDTH = 60;
+const SPUD_BASE_HEIGHT = 48;
+const SPUD_MAX_WIDTH = 180;
+const SPUD_GROW_W = 5;
+const PLAYER_SPEED = 220;
+const PLAYER_TOP_LIMIT = 10;
+const BASE_SPAWN_INTERVAL = 1.6;
 
 let score = 0;
 let bestScore = 0;
 let timeLeft = RUN_DURATION_SECONDS;
 let rewardPending = 0;
-let temperature = 50;
-let spots = [];
+let spudWidth = SPUD_BASE_WIDTH;
+let spudHeight = SPUD_BASE_HEIGHT;
+let miniSpuds = [];
 let running = false;
 let spawnTimer = 0;
 let spawnInterval = BASE_SPAWN_INTERVAL;
-let driftTimer = 0;
-let driftRate = 0;
 let elapsedSeconds = 0;
 let lastFrame = 0;
 let loopHandle = null;
-let spongeX = 0;
-let spongeY = 0;
-let spongeScrubbing = false;
-let tempWarningTimer = 0;
+let spudX = 0;
+let spudY = 0;
+const keysHeld = new Set();
 
 const spriteLoadCache = new Map();
 
@@ -73,97 +59,52 @@ function randomBetween(min, max) {
 }
 
 function loadSprite(path) {
-  if (!path) {
-    return Promise.resolve(false);
-  }
-
+  if (!path) return Promise.resolve(false);
   const cached = spriteLoadCache.get(path);
-  if (cached) {
-    return cached;
-  }
-
+  if (cached) return cached;
   const promise = new Promise((resolve) => {
     const image = new Image();
     image.onload = () => resolve(true);
     image.onerror = () => resolve(false);
     image.src = path;
   });
-
   spriteLoadCache.set(path, promise);
   return promise;
 }
 
-function enableSprite(element, path) {
-  element.classList.add("bath-uses-sprite");
-  element.style.backgroundImage = `url("${path}")`;
-}
-
-function disableSprite(element) {
-  element.classList.remove("bath-uses-sprite");
-  element.style.backgroundImage = "";
-}
-
 function applySpriteIfAvailable(element, path) {
   if (!path) {
-    disableSprite(element);
+    element.classList.remove("harvest-uses-sprite");
+    element.style.backgroundImage = "";
     return;
   }
-
   element.dataset.spritePath = path;
-
   loadSprite(path).then((loaded) => {
-    if (!element.isConnected || element.dataset.spritePath !== path) {
-      return;
-    }
-
+    if (!element.isConnected || element.dataset.spritePath !== path) return;
     if (loaded) {
-      enableSprite(element, path);
+      element.classList.add("harvest-uses-sprite");
+      element.style.backgroundImage = `url("${path}")`;
     } else {
-      disableSprite(element);
+      element.classList.remove("harvest-uses-sprite");
+      element.style.backgroundImage = "";
     }
   });
-}
-
-function isComfortTemperature() {
-  return temperature >= COMFORT_MIN && temperature <= COMFORT_MAX;
 }
 
 function setStatus(message) {
   statusText.textContent = message;
 }
 
-function updateNeedle() {
-  const percent = ((temperature - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100;
-  tempNeedle.style.left = `${clamp(percent, 0, 100)}%`;
+function updatePlayerSpudSize() {
+  playerSpud.style.width = `${spudWidth}px`;
+  playerSpud.style.height = `${spudHeight}px`;
 }
 
 function updateHud() {
   scoreText.textContent = String(score);
   bestText.textContent = String(bestScore);
   timeText.textContent = String(Math.max(0, Math.ceil(timeLeft)));
-  tempText.textContent = String(Math.round(temperature));
-  updateNeedle();
-}
-
-function updateTemperatureWarning() {
-  const nearColdEdge = temperature <= TEMP_MIN + TEMP_EDGE_WARNING_PADDING;
-  const nearHotEdge = temperature >= TEMP_MAX - TEMP_EDGE_WARNING_PADDING;
-
-  if (nearColdEdge || nearHotEdge) {
-    tempWarningTimer = TEMP_WARNING_FLASH_DURATION;
-    arena.classList.toggle("bath-arena--danger", true);
-    arena.classList.toggle("bath-arena--danger-cold", nearColdEdge);
-    arena.classList.toggle("bath-arena--danger-hot", nearHotEdge);
-    return;
-  }
-
-  if (tempWarningTimer > 0) {
-    tempWarningTimer -= 16;
-    arena.classList.toggle("bath-arena--danger", true);
-    return;
-  }
-
-  arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
+  sizeText.textContent = String(Math.round(spudWidth));
 }
 
 function loadBestScore() {
@@ -179,11 +120,11 @@ function saveBestScore() {
   }
 }
 
-function clearSpots() {
-  for (let i = 0; i < spots.length; i += 1) {
-    spots[i].element.remove();
+function clearMiniSpuds() {
+  for (let i = 0; i < miniSpuds.length; i += 1) {
+    miniSpuds[i].element.remove();
   }
-  spots = [];
+  miniSpuds = [];
 }
 
 function getArenaBounds() {
@@ -193,204 +134,92 @@ function getArenaBounds() {
   };
 }
 
-function placeSponge() {
-  sponge.style.transform = `translate(${Math.round(spongeX)}px, ${Math.round(spongeY)}px)`;
+function placePlayerSpud() {
+  playerSpud.style.transform = `translate(${Math.round(spudX)}px, ${Math.round(spudY)}px)`;
 }
 
-function setSpongePosition(nextX, nextY) {
-  const arenaBounds = getArenaBounds();
-  const maxX = Math.max(0, arenaBounds.width - SPONGE_WIDTH);
-  const maxY = Math.max(SPONGE_TOP_LIMIT, arenaBounds.height - SPONGE_HEIGHT - 8);
-
-  spongeX = clamp(nextX, 0, maxX);
-  spongeY = clamp(nextY, SPONGE_TOP_LIMIT, maxY);
-  placeSponge();
+function setPlayerSpudPosition(nextX, nextY) {
+  const bounds = getArenaBounds();
+  const maxX = Math.max(0, bounds.width - spudWidth);
+  const maxY = Math.max(PLAYER_TOP_LIMIT, bounds.height - spudHeight - 8);
+  spudX = clamp(nextX, 0, maxX);
+  spudY = clamp(nextY, PLAYER_TOP_LIMIT, maxY);
+  placePlayerSpud();
 }
 
-function resetSponge() {
-  const arenaBounds = getArenaBounds();
-  const targetX = Math.max(8, Math.round(arenaBounds.width * 0.16));
-  const targetY = Math.max(SPONGE_TOP_LIMIT, arenaBounds.height - SPONGE_HEIGHT - 16);
-  setSpongePosition(targetX, targetY);
-  spongeScrubbing = false;
-  sponge.classList.remove("bath-sponge--scrubbing");
+function resetPlayerSpud() {
+  spudWidth = SPUD_BASE_WIDTH;
+  spudHeight = SPUD_BASE_HEIGHT;
+  updatePlayerSpudSize();
+  const bounds = getArenaBounds();
+  setPlayerSpudPosition(
+    Math.round(bounds.width / 2 - SPUD_BASE_WIDTH / 2),
+    Math.max(PLAYER_TOP_LIMIT, bounds.height - SPUD_BASE_HEIGHT - 20),
+  );
 }
 
-function getPointerPositionInArena(event) {
-  const rect = arena.getBoundingClientRect();
-  return {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
-  };
+function intersectsMiniSpud(miniSpudData) {
+  const playerRight = spudX + spudWidth;
+  const playerBottom = spudY + spudHeight;
+  const miniRight = miniSpudData.x + MINI_SPUD_SIZE;
+  const miniBottom = miniSpudData.y + MINI_SPUD_SIZE;
+  return playerRight >= miniSpudData.x && spudX <= miniRight && playerBottom >= miniSpudData.y && spudY <= miniBottom;
 }
 
-function intersectsSponge(spotData) {
-  const spongeRight = spongeX + SPONGE_WIDTH;
-  const spongeBottom = spongeY + SPONGE_HEIGHT;
-  const spotRight = spotData.x + spotData.size;
-  const spotBottom = spotData.y + spotData.size;
-
-  return spongeRight >= spotData.x && spongeX <= spotRight && spongeBottom >= spotData.y && spongeY <= spotBottom;
-}
-
-function updateSpotProgressVisual(spotData) {
-  const ratio = clamp(spotData.scrubSeconds / SPOT_SCRUB_REQUIRED_SECONDS, 0, 1);
-  spotData.progressFill.style.width = `${Math.round(ratio * 100)}%`;
-
-  const shouldShow = spotData.progressVisibleTimer > 0 || (ratio > 0 && ratio < 1);
-  spotData.progress.classList.toggle("bath-spot-progress--visible", shouldShow);
-}
-
-function tickSpotProgressVisibility(dt) {
-  for (let i = 0; i < spots.length; i += 1) {
-    const spotData = spots[i];
-    spotData.progressVisibleTimer = Math.max(0, spotData.progressVisibleTimer - dt);
-    updateSpotProgressVisual(spotData);
-  }
-}
-
-function scrubSpots(dt) {
-  if (!running || !spongeScrubbing) {
-    return;
-  }
-
-  for (let i = spots.length - 1; i >= 0; i -= 1) {
-    const spotData = spots[i];
-    if (!intersectsSponge(spotData)) {
-      continue;
-    }
-
-    spotData.progressVisibleTimer = SPOT_PROGRESS_VISIBLE_SECONDS;
-
-    if (dt > 0) {
-      spotData.scrubSeconds += dt;
-    }
-
-    updateSpotProgressVisual(spotData);
-
-    if (spotData.scrubSeconds >= SPOT_SCRUB_REQUIRED_SECONDS) {
-      cleanSpot(spotData);
-    }
-  }
-}
-
-function moveSpongeWithPointer(event) {
-  const point = getPointerPositionInArena(event);
-  setSpongePosition(point.x - SPONGE_WIDTH / 2, point.y - SPONGE_HEIGHT / 2);
-  scrubSpots(0);
-}
-
-function createSpot() {
-  const spot = document.createElement("button");
-  spot.type = "button";
-  spot.className = "bath-spot";
-  spot.setAttribute("aria-label", "Clean muddy spot");
-  applySpriteIfAvailable(spot, SPRITE_ASSETS.dirtSpot);
-
-  const arenaBounds = getArenaBounds();
-  const arenaWidth = arenaBounds.width;
-  const arenaHeight = arenaBounds.height;
-  const x = randomBetween(10, Math.max(10, arenaWidth - SPOT_SIZE - 10));
-  const y = randomBetween(80, Math.max(85, arenaHeight - SPOT_SIZE - 14));
-
-  spot.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-
-  const progress = document.createElement("div");
-  progress.className = "bath-spot-progress";
-
-  const progressFill = document.createElement("div");
-  progressFill.className = "bath-spot-progress-fill";
-
-  progress.appendChild(progressFill);
-  spot.appendChild(progress);
-
-  const spotData = {
-    element: spot,
-    x,
-    y,
-    size: SPOT_SIZE,
-    scrubSeconds: 0,
-    progressVisibleTimer: 0,
-    progress,
-    progressFill,
-  };
-
-  updateSpotProgressVisual(spotData);
-
-  spotsLayer.appendChild(spot);
-  spots.push(spotData);
-}
-
-function removeSpot(spotData) {
-  const index = spots.indexOf(spotData);
+function removeMiniSpud(miniSpudData) {
+  const index = miniSpuds.indexOf(miniSpudData);
   if (index >= 0) {
-    spots[index].element.remove();
-    spots.splice(index, 1);
+    miniSpuds[index].element.remove();
+    miniSpuds.splice(index, 1);
   }
 }
 
-function cleanSpot(spotData) {
-  if (!running) {
-    return;
-  }
-
-  if (isComfortTemperature()) {
-    score += 10;
-    setStatus("Great clean! Temperature is comfortable.");
-  } else {
-    score = Math.max(0, score + 3);
-    setStatus("Spot cleaned, but the water temperature needs a little work.");
-  }
-
-  removeSpot(spotData);
+function collectMiniSpud(miniSpudData) {
+  if (!running) return;
+  score += 10;
+  spudWidth = Math.min(SPUD_MAX_WIDTH, spudWidth + SPUD_GROW_W);
+  spudHeight = Math.min(Math.round(SPUD_MAX_WIDTH * 0.8), spudHeight + Math.round(SPUD_GROW_W * 0.8));
+  updatePlayerSpudSize();
+  removeMiniSpud(miniSpudData);
   updateHud();
+  setStatus("Yum! Your spud is growing!");
+}
+
+function checkCollections() {
+  if (!running) return;
+  for (let i = miniSpuds.length - 1; i >= 0; i -= 1) {
+    if (intersectsMiniSpud(miniSpuds[i])) {
+      collectMiniSpud(miniSpuds[i]);
+    }
+  }
+}
+
+function createMiniSpud() {
+  const el = document.createElement("div");
+  el.className = "mini-spud";
+  el.setAttribute("aria-hidden", "true");
+
+  const bounds = getArenaBounds();
+  const x = randomBetween(10, Math.max(10, bounds.width - MINI_SPUD_SIZE - 10));
+  const y = randomBetween(10, Math.max(20, bounds.height - MINI_SPUD_SIZE - 14));
+  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+
+  const miniSpudData = { element: el, x, y, size: MINI_SPUD_SIZE };
+  miniSpudsLayer.appendChild(el);
+  miniSpuds.push(miniSpudData);
 }
 
 function getSpawnInterval() {
   const progress = clamp(elapsedSeconds / RUN_DURATION_SECONDS, 0, 1);
-  const min = Math.max(0.25, BASE_SPAWN_INTERVAL - progress * 0.8);
-  const max = Math.max(min + 0.12, BASE_SPAWN_INTERVAL + 0.32 - progress * 0.95);
+  const min = Math.max(1.0, BASE_SPAWN_INTERVAL - progress * 1.0);
+  const max = min + 0.5;
   return randomBetween(min, max);
 }
 
 function getSpawnBatchCount() {
   const progress = clamp(elapsedSeconds / RUN_DURATION_SECONDS, 0, 1);
-
-  if (progress < 0.35) {
-    return 1;
-  }
-
-  if (progress < 0.7) {
-    return Math.random() < 0.3 ? 2 : 1;
-  }
-
-  return Math.random() < 0.7 ? 2 : 1;
-}
-
-function adjustTemperature(delta) {
-  if (!running) {
-    return;
-  }
-
-  temperature = clamp(temperature + delta, TEMP_MIN, TEMP_MAX);
-  updateHud();
-  updateTemperatureWarning();
-
-  if (temperature <= TEMP_MIN) {
-    endRun("Water got too cold.");
-  }
-
-  if (temperature >= TEMP_MAX) {
-    endRun("Water got too hot.");
-  }
-}
-
-function coolWater() {
-  adjustTemperature(-8);
-}
-
-function heatWater() {
-  adjustTemperature(8);
+  if (progress < 0.7) return 1;
+  return Math.random() < 0.25 ? 2 : 1;
 }
 
 function getRewardPoints(currentScore) {
@@ -402,8 +231,7 @@ function getRewardPoints(currentScore) {
 
 function endRun(reasonMessage) {
   running = false;
-  spongeScrubbing = false;
-  sponge.classList.remove("bath-sponge--scrubbing");
+  keysHeld.clear();
 
   if (loopHandle) {
     cancelAnimationFrame(loopHandle);
@@ -413,54 +241,29 @@ function endRun(reasonMessage) {
   saveBestScore();
   updateHud();
 
-  scrubSpots(0);
-
   const reward = getRewardPoints(score);
   rewardPending = Math.max(rewardPending, reward);
   claimRewardBtn.disabled = false;
-  startBtn.textContent = "Start New Bath";
-  setStatus(`${reasonMessage} Reward ready: +${reward} Social and +${Math.max(1, Math.ceil(reward / 2))} Spiritual`);
+  startBtn.textContent = "Start New Harvest";
+  setStatus(`${reasonMessage} Reward ready: +${reward} Physical and +${Math.max(1, Math.ceil(reward / 2))} Mental`);
 }
 
 function step(timestamp) {
-  if (!running) {
-    return;
-  }
+  if (!running) return;
 
-  if (!lastFrame) {
-    lastFrame = timestamp;
-  }
-
+  if (!lastFrame) lastFrame = timestamp;
   const dt = Math.min((timestamp - lastFrame) / 1000, 0.05);
   lastFrame = timestamp;
 
   elapsedSeconds += dt;
   timeLeft -= dt;
 
-  driftTimer += dt;
-  if (driftTimer >= 1.3) {
-    driftTimer = 0;
-    driftRate = randomBetween(-2.4, 2.4);
-  }
+  if (keysHeld.has("ArrowLeft")) setPlayerSpudPosition(spudX - PLAYER_SPEED * dt, spudY);
+  if (keysHeld.has("ArrowRight")) setPlayerSpudPosition(spudX + PLAYER_SPEED * dt, spudY);
+  if (keysHeld.has("ArrowUp")) setPlayerSpudPosition(spudX, spudY - PLAYER_SPEED * dt);
+  if (keysHeld.has("ArrowDown")) setPlayerSpudPosition(spudX, spudY + PLAYER_SPEED * dt);
 
-  temperature = clamp(temperature + driftRate * dt * 4, TEMP_MIN, TEMP_MAX);
-  updateTemperatureWarning();
-
-  if (temperature <= TEMP_MIN) {
-    updateHud();
-    arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
-    endRun("Water got too cold.");
-    return;
-  }
-
-  if (temperature >= TEMP_MAX) {
-    updateHud();
-    arena.classList.remove("bath-arena--danger", "bath-arena--danger-cold", "bath-arena--danger-hot");
-    endRun("Water got too hot.");
-    return;
-  }
-
-  tickSpotProgressVisibility(dt);
+  checkCollections();
 
   spawnTimer += dt;
   if (spawnTimer >= spawnInterval) {
@@ -468,24 +271,20 @@ function step(timestamp) {
     spawnInterval = getSpawnInterval();
     const batchCount = getSpawnBatchCount();
     for (let i = 0; i < batchCount; i += 1) {
-      if (spots.length >= MAX_SPOTS) {
-        break;
-      }
-      createSpot();
+      if (miniSpuds.length >= MAX_MINI_SPUDS) break;
+      createMiniSpud();
     }
   }
 
-  scrubSpots(dt);
-
   updateHud();
 
-  if (spots.length >= MAX_SPOTS) {
-    endRun("Too many dirty spots built up.");
+  if (miniSpuds.length >= MAX_MINI_SPUDS) {
+    endRun("Too many spuds left behind!");
     return;
   }
 
   if (timeLeft <= 0) {
-    endRun("Bath complete.");
+    endRun("Harvest complete!");
     return;
   }
 
@@ -493,45 +292,32 @@ function step(timestamp) {
 }
 
 function startRun() {
-  clearSpots();
-  resetSponge();
+  clearMiniSpuds();
+  resetPlayerSpud();
 
   score = 0;
   timeLeft = RUN_DURATION_SECONDS;
-  temperature = 50;
   rewardPending = Math.max(0, rewardPending);
   spawnTimer = 0;
   spawnInterval = getSpawnInterval();
-  driftTimer = 0;
-  driftRate = randomBetween(-1.5, 1.5);
   elapsedSeconds = 0;
   lastFrame = 0;
-  tempWarningTimer = 0;
+  keysHeld.clear();
   running = true;
 
   claimRewardBtn.disabled = rewardPending <= 0;
-  startBtn.textContent = "Restart Bath";
+  startBtn.textContent = "Restart Harvest";
 
   updateHud();
-  updateTemperatureWarning();
-  setStatus("Bath Time Balance running.");
+  setStatus("Harvest running — collect those spuds!");
 
-  if (loopHandle) {
-    cancelAnimationFrame(loopHandle);
-  }
-
+  if (loopHandle) cancelAnimationFrame(loopHandle);
   loopHandle = requestAnimationFrame(step);
 }
 
 function applyReward(points) {
   const raw = localStorage.getItem(WELLNESS_STATE_KEY);
-  let data = {
-    physical: 70,
-    mental: 70,
-    social: 70,
-    intellectual: 70,
-    spiritual: 70,
-  };
+  let data = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
 
   if (raw) {
     try {
@@ -548,96 +334,52 @@ function applyReward(points) {
     }
   }
 
-  const socialGain = points;
-  const spiritualGain = Math.max(1, Math.ceil(points / 2));
-
-  data.social = clamp(Math.round(data.social) + socialGain, 0, 100);
-  data.spiritual = clamp(Math.round(data.spiritual) + spiritualGain, 0, 100);
-
+  const physicalGain = points;
+  const mentalGain = Math.max(1, Math.ceil(points / 2));
+  data.physical = clamp(Math.round(data.physical) + physicalGain, 0, 100);
+  data.mental = clamp(Math.round(data.mental) + mentalGain, 0, 100);
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
-  return { socialGain, spiritualGain };
+  return { physicalGain, mentalGain };
 }
 
 function claimReward() {
-  if (rewardPending <= 0) {
-    return;
-  }
-
+  if (rewardPending <= 0) return;
   const points = rewardPending;
   const gains = applyReward(points);
-
   rewardPending = 0;
   claimRewardBtn.disabled = true;
-  setStatus(`Reward applied: +${gains.socialGain} Social and +${gains.spiritualGain} Spiritual`);
+  setStatus(`Reward applied: +${gains.physicalGain} Physical and +${gains.mentalGain} Mental`);
 }
 
+const ARROW_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+
 function handleKeyDown(event) {
-  const key = event.key.toLowerCase();
-
-  if (event.key === "ArrowLeft" || key === "a") {
+  if (ARROW_KEYS.includes(event.key)) {
     event.preventDefault();
-    coolWater();
+    if (running) keysHeld.add(event.key);
   }
-
-  if (event.key === "ArrowRight" || key === "d") {
-    event.preventDefault();
-    heatWater();
-  }
-
   if (event.key === " " && !running) {
     event.preventDefault();
     startRun();
   }
 }
 
-function handleSpongePointerDown(event) {
-  if (!running) {
-    return;
-  }
-
-  event.preventDefault();
-  spongeScrubbing = true;
-  sponge.classList.add("bath-sponge--scrubbing");
-  moveSpongeWithPointer(event);
-}
-
-function handlePointerMove(event) {
-  if (!spongeScrubbing) {
-    return;
-  }
-
-  event.preventDefault();
-  moveSpongeWithPointer(event);
-}
-
-function stopScrub() {
-  if (!spongeScrubbing) {
-    return;
-  }
-
-  spongeScrubbing = false;
-  sponge.classList.remove("bath-sponge--scrubbing");
+function handleKeyUp(event) {
+  keysHeld.delete(event.key);
 }
 
 function bindEvents() {
-  coolBtn.addEventListener("click", coolWater);
-  heatBtn.addEventListener("click", heatWater);
   startBtn.addEventListener("click", startRun);
   claimRewardBtn.addEventListener("click", claimReward);
-  sponge.addEventListener("pointerdown", handleSpongePointerDown);
-
   window.addEventListener("keydown", handleKeyDown);
-  window.addEventListener("pointermove", handlePointerMove, { passive: false });
-  window.addEventListener("pointerup", stopScrub);
-  window.addEventListener("pointercancel", stopScrub);
-  window.addEventListener("resize", resetSponge);
+  window.addEventListener("keyup", handleKeyUp);
+  window.addEventListener("resize", resetPlayerSpud);
 }
 
 function init() {
   loadBestScore();
-  applySpriteIfAvailable(pet, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.pet);
-  applySpriteIfAvailable(sponge, SPRITE_ASSETS.sponge);
-  resetSponge();
+  applySpriteIfAvailable(playerSpud, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.playerSpud);
+  resetPlayerSpud();
   updateHud();
   setStatus("Ready");
   bindEvents();
