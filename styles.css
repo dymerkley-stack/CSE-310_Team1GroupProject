@@ -1170,6 +1170,38 @@ body {
   background: var(--panel);
 }
 
+.harvest-bonus-bar {
+  margin: 0 30px;
+  padding: 0 16px;
+  height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #4caf50 0%, #2e7d32 100%);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 300ms ease, height 300ms ease, padding 300ms ease;
+}
+
+.harvest-bonus-bar--visible {
+  height: 38px;
+  padding: 0 16px;
+  opacity: 1;
+  margin-bottom: 10px;
+}
+
+.harvest-bonus-bar--physical {
+  background: linear-gradient(90deg, #e57373 0%, #c62828 100%);
+}
+
+.harvest-bonus-bar--mental {
+  background: linear-gradient(90deg, #64b5f6 0%, #1565c0 100%);
+}
+
 .harvest-game-area {
   padding: 22px 30px 12px;
 }
@@ -1182,26 +1214,40 @@ body {
   overflow: hidden;
 }
 
-.player-spud {
+.player-basket {
   position: absolute;
-  border-radius: 55% 45% 52% 48% / 50% 58% 42% 50%;
-  background: radial-gradient(ellipse at 38% 32%, #d4955a 0%, #9c6030 55%, #6b3e1e 100%);
-  border: 2px solid #4a2810;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
-  z-index: 7;
-  transition: width 180ms ease, height 180ms ease;
+  width: 92px;
+  height: 76px;
+  background-image: url("Images/basket.png");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+  z-index: 7;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+  transition: filter 150ms ease;
 }
 
-.player-spud.harvest-uses-sprite {
-  background: none;
-  border: none;
-  box-shadow: none;
+.player-basket--full {
+  filter: drop-shadow(0 0 10px rgba(220, 60, 60, 0.85)) drop-shadow(0 0 18px rgba(220, 60, 60, 0.45)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+}
+
+.barn-element {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 145px;
+  height: 118px;
+  background-image: url("Images/barn.png");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+  z-index: 5;
+  pointer-events: none;
+  transition: filter 150ms ease;
+}
+
+.barn--flash {
+  filter: brightness(1.5) saturate(1.6);
 }
 
 .mini-spuds-layer {
@@ -1212,12 +1258,12 @@ body {
 
 .mini-spud {
   position: absolute;
-  width: 30px;
-  height: 24px;
-  border-radius: 55% 45% 52% 48% / 50% 58% 42% 50%;
-  background: radial-gradient(ellipse at 38% 32%, #e0b070 0%, #b07840 55%, #845030 100%);
-  border: 1.5px solid #5a3010;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 54px;
+  height: 54px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  z-index: 6;
 }
 
 .harvest-controls {

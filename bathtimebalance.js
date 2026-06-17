@@ -1,42 +1,42 @@
 import { getSelectedAvatarForCurrentProgress } from "./avatar-selection.js";
 
 const arena = document.getElementById("harvestArena");
-const playerSpud = document.getElementById("playerSpud");
+const playerBasket = document.getElementById("playerBasket");
 const miniSpudsLayer = document.getElementById("miniSpudsLayer");
+const barnEl = document.getElementById("barnElement");
 
 const scoreText = document.getElementById("harvestScore");
 const bestText = document.getElementById("harvestBest");
 const timeText = document.getElementById("harvestTime");
-const sizeText = document.getElementById("harvestSize");
+const basketText = document.getElementById("harvestBasket");
 const statusText = document.getElementById("harvestStatus");
 
 const startBtn = document.getElementById("startHarvestBtn");
 const claimRewardBtn = document.getElementById("claimHarvestRewardBtn");
+const bonusBar = document.getElementById("harvestBonusBar");
 
 const BEST_SCORE_KEY = "potatoHarvestBestScore";
 const WELLNESS_STATE_KEY = "wellnessState";
 
-const SPRITE_ASSETS = {
-  playerSpud: "",
-};
-
 const RUN_DURATION_SECONDS = 50;
-const MAX_MINI_SPUDS = 6;
-const MINI_SPUD_SIZE = 30;
-const SPUD_BASE_WIDTH = 60;
-const SPUD_BASE_HEIGHT = 48;
-const SPUD_MAX_WIDTH = 180;
-const SPUD_GROW_W = 5;
+const MAX_SPUDS_ON_FIELD = 8;
+const SPUD_SIZE = 54;
+const BASKET_WIDTH = 92;
+const BASKET_HEIGHT = 76;
+const BARN_WIDTH = 145;
+const BARN_HEIGHT = 118;
+const BARN_RIGHT_OFFSET = 10;
+const BARN_TOP_OFFSET = 10;
 const PLAYER_SPEED = 220;
-const PLAYER_TOP_LIMIT = 10;
+const PLAYER_TOP_LIMIT = BARN_TOP_OFFSET + BARN_HEIGHT + 6;
 const BASE_SPAWN_INTERVAL = 1.6;
+const MAX_BASKET = 10;
 
 let score = 0;
 let bestScore = 0;
 let timeLeft = RUN_DURATION_SECONDS;
 let rewardPending = 0;
-let spudWidth = SPUD_BASE_WIDTH;
-let spudHeight = SPUD_BASE_HEIGHT;
+let basketCount = 0;
 let miniSpuds = [];
 let running = false;
 let spawnTimer = 0;
@@ -44,11 +44,12 @@ let spawnInterval = BASE_SPAWN_INTERVAL;
 let elapsedSeconds = 0;
 let lastFrame = 0;
 let loopHandle = null;
-let spudX = 0;
-let spudY = 0;
+let basketX = 0;
+let basketY = 0;
+let wasAtBarn = false;
+let avatarSrc = "";
+let bonusBarTimeout = null;
 const keysHeld = new Set();
-
-const spriteLoadCache = new Map();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -58,53 +59,16 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-function loadSprite(path) {
-  if (!path) return Promise.resolve(false);
-  const cached = spriteLoadCache.get(path);
-  if (cached) return cached;
-  const promise = new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => resolve(true);
-    image.onerror = () => resolve(false);
-    image.src = path;
-  });
-  spriteLoadCache.set(path, promise);
-  return promise;
-}
-
-function applySpriteIfAvailable(element, path) {
-  if (!path) {
-    element.classList.remove("harvest-uses-sprite");
-    element.style.backgroundImage = "";
-    return;
-  }
-  element.dataset.spritePath = path;
-  loadSprite(path).then((loaded) => {
-    if (!element.isConnected || element.dataset.spritePath !== path) return;
-    if (loaded) {
-      element.classList.add("harvest-uses-sprite");
-      element.style.backgroundImage = `url("${path}")`;
-    } else {
-      element.classList.remove("harvest-uses-sprite");
-      element.style.backgroundImage = "";
-    }
-  });
-}
-
 function setStatus(message) {
   statusText.textContent = message;
-}
-
-function updatePlayerSpudSize() {
-  playerSpud.style.width = `${spudWidth}px`;
-  playerSpud.style.height = `${spudHeight}px`;
 }
 
 function updateHud() {
   scoreText.textContent = String(score);
   bestText.textContent = String(bestScore);
   timeText.textContent = String(Math.max(0, Math.ceil(timeLeft)));
-  sizeText.textContent = String(Math.round(spudWidth));
+  basketText.textContent = basketCount >= MAX_BASKET ? "FULL" : `${basketCount} / ${MAX_BASKET}`;
+  playerBasket.classList.toggle("player-basket--full", basketCount >= MAX_BASKET);
 }
 
 function loadBestScore() {
@@ -134,36 +98,43 @@ function getArenaBounds() {
   };
 }
 
-function placePlayerSpud() {
-  playerSpud.style.transform = `translate(${Math.round(spudX)}px, ${Math.round(spudY)}px)`;
+function getBarnBounds() {
+  const bounds = getArenaBounds();
+  return {
+    x: bounds.width - BARN_WIDTH - BARN_RIGHT_OFFSET,
+    y: BARN_TOP_OFFSET,
+    width: BARN_WIDTH,
+    height: BARN_HEIGHT,
+  };
 }
 
-function setPlayerSpudPosition(nextX, nextY) {
-  const bounds = getArenaBounds();
-  const maxX = Math.max(0, bounds.width - spudWidth);
-  const maxY = Math.max(PLAYER_TOP_LIMIT, bounds.height - spudHeight - 8);
-  spudX = clamp(nextX, 0, maxX);
-  spudY = clamp(nextY, PLAYER_TOP_LIMIT, maxY);
-  placePlayerSpud();
+function placeBasket() {
+  playerBasket.style.transform = `translate(${Math.round(basketX)}px, ${Math.round(basketY)}px)`;
 }
 
-function resetPlayerSpud() {
-  spudWidth = SPUD_BASE_WIDTH;
-  spudHeight = SPUD_BASE_HEIGHT;
-  updatePlayerSpudSize();
+function setBasketPosition(nextX, nextY) {
   const bounds = getArenaBounds();
-  setPlayerSpudPosition(
-    Math.round(bounds.width / 2 - SPUD_BASE_WIDTH / 2),
-    Math.max(PLAYER_TOP_LIMIT, bounds.height - SPUD_BASE_HEIGHT - 20),
+  const maxX = Math.max(0, bounds.width - BASKET_WIDTH);
+  const maxY = Math.max(0, bounds.height - BASKET_HEIGHT - 8);
+  basketX = clamp(nextX, 0, maxX);
+  basketY = clamp(nextY, 0, maxY);
+  placeBasket();
+}
+
+function resetBasket() {
+  basketCount = 0;
+  playerBasket.classList.remove("player-basket--full");
+  const bounds = getArenaBounds();
+  setBasketPosition(
+    Math.round(bounds.width / 2 - BASKET_WIDTH / 2),
+    Math.max(0, bounds.height - BASKET_HEIGHT - 20),
   );
 }
 
-function intersectsMiniSpud(miniSpudData) {
-  const playerRight = spudX + spudWidth;
-  const playerBottom = spudY + spudHeight;
-  const miniRight = miniSpudData.x + MINI_SPUD_SIZE;
-  const miniBottom = miniSpudData.y + MINI_SPUD_SIZE;
-  return playerRight >= miniSpudData.x && spudX <= miniRight && playerBottom >= miniSpudData.y && spudY <= miniBottom;
+function intersectsBasket(x, y, w, h) {
+  const basketRight = basketX + BASKET_WIDTH;
+  const basketBottom = basketY + BASKET_HEIGHT;
+  return basketRight >= x && basketX <= x + w && basketBottom >= y && basketY <= y + h;
 }
 
 function removeMiniSpud(miniSpudData) {
@@ -175,23 +146,90 @@ function removeMiniSpud(miniSpudData) {
 }
 
 function collectMiniSpud(miniSpudData) {
-  if (!running) return;
-  score += 10;
-  spudWidth = Math.min(SPUD_MAX_WIDTH, spudWidth + SPUD_GROW_W);
-  spudHeight = Math.min(Math.round(SPUD_MAX_WIDTH * 0.8), spudHeight + Math.round(SPUD_GROW_W * 0.8));
-  updatePlayerSpudSize();
+  if (!running || basketCount >= MAX_BASKET) return;
+  basketCount += 1;
   removeMiniSpud(miniSpudData);
   updateHud();
-  setStatus("Yum! Your spud is growing!");
+  if (basketCount >= MAX_BASKET) {
+    setStatus("Basket full! Head to the barn!");
+  } else {
+    setStatus(`Collected! ${basketCount} / ${MAX_BASKET} in basket.`);
+  }
+}
+
+function showBonusBar(message, stat) {
+  if (bonusBarTimeout) clearTimeout(bonusBarTimeout);
+  bonusBar.textContent = message;
+  bonusBar.classList.remove("harvest-bonus-bar--physical", "harvest-bonus-bar--mental");
+  bonusBar.classList.add(stat === "Physical" ? "harvest-bonus-bar--physical" : "harvest-bonus-bar--mental");
+  bonusBar.classList.add("harvest-bonus-bar--visible");
+  bonusBarTimeout = setTimeout(() => {
+    bonusBar.classList.remove("harvest-bonus-bar--visible");
+    bonusBarTimeout = null;
+  }, 2800);
+}
+
+function applyFullBasketBonus() {
+  const raw = localStorage.getItem(WELLNESS_STATE_KEY);
+  let data = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      data = {
+        physical: Number.isFinite(parsed?.physical) ? parsed.physical : 70,
+        mental: Number.isFinite(parsed?.mental) ? parsed.mental : 70,
+        social: Number.isFinite(parsed?.social) ? parsed.social : 70,
+        intellectual: Number.isFinite(parsed?.intellectual) ? parsed.intellectual : 70,
+        spiritual: Number.isFinite(parsed?.spiritual) ? parsed.spiritual : 70,
+      };
+    } catch {
+      // Keep defaults when saved data cannot be parsed.
+    }
+  }
+  const stat = Math.random() < 0.5 ? "physical" : "mental";
+  data[stat] = clamp(Math.round(data[stat]) + 5, 0, 100);
+  localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
+  return stat === "physical" ? "Physical" : "Mental";
+}
+
+function depositAtBarn() {
+  if (!running || basketCount <= 0) return;
+  const deposited = basketCount;
+  const wasFull = deposited >= MAX_BASKET;
+  score += deposited * 10;
+  basketCount = 0;
+  updateHud();
+
+  if (wasFull) {
+    const bonusStat = applyFullBasketBonus();
+    setStatus(`Full basket delivered! +${deposited * 10} points`);
+    showBonusBar(`+5 ${bonusStat} bonus for a full basket!`, bonusStat);
+  } else {
+    setStatus(`Deposited ${deposited} spud${deposited !== 1 ? "s" : ""}! +${deposited * 10} points`);
+  }
+
+  barnEl.classList.add("barn--flash");
+  setTimeout(() => barnEl.classList.remove("barn--flash"), 350);
 }
 
 function checkCollections() {
   if (!running) return;
   for (let i = miniSpuds.length - 1; i >= 0; i -= 1) {
-    if (intersectsMiniSpud(miniSpuds[i])) {
-      collectMiniSpud(miniSpuds[i]);
+    const s = miniSpuds[i];
+    if (basketCount < MAX_BASKET && intersectsBasket(s.x, s.y, SPUD_SIZE, SPUD_SIZE)) {
+      collectMiniSpud(s);
     }
   }
+}
+
+function checkBarnDeposit() {
+  if (!running) return;
+  const barn = getBarnBounds();
+  const atBarn = intersectsBasket(barn.x, barn.y, barn.width, barn.height);
+  if (atBarn && !wasAtBarn && basketCount > 0) {
+    depositAtBarn();
+  }
+  wasAtBarn = atBarn;
 }
 
 function createMiniSpud() {
@@ -199,12 +237,27 @@ function createMiniSpud() {
   el.className = "mini-spud";
   el.setAttribute("aria-hidden", "true");
 
+  if (avatarSrc) {
+    el.style.backgroundImage = `url("${avatarSrc}")`;
+  }
+
   const bounds = getArenaBounds();
-  const x = randomBetween(10, Math.max(10, bounds.width - MINI_SPUD_SIZE - 10));
-  const y = randomBetween(10, Math.max(20, bounds.height - MINI_SPUD_SIZE - 14));
+  const barn = getBarnBounds();
+
+  let x, y, attempts = 0;
+  do {
+    x = randomBetween(10, Math.max(10, bounds.width - SPUD_SIZE - 10));
+    y = randomBetween(PLAYER_TOP_LIMIT, Math.max(PLAYER_TOP_LIMIT + 20, bounds.height - SPUD_SIZE - 14));
+    attempts += 1;
+  } while (
+    attempts < 12 &&
+    x + SPUD_SIZE >= barn.x - 10 && x <= barn.x + barn.width + 10 &&
+    y + SPUD_SIZE >= barn.y - 10 && y <= barn.y + barn.height + 10
+  );
+
   el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
 
-  const miniSpudData = { element: el, x, y, size: MINI_SPUD_SIZE };
+  const miniSpudData = { element: el, x, y, size: SPUD_SIZE };
   miniSpudsLayer.appendChild(el);
   miniSpuds.push(miniSpudData);
 }
@@ -258,11 +311,12 @@ function step(timestamp) {
   elapsedSeconds += dt;
   timeLeft -= dt;
 
-  if (keysHeld.has("ArrowLeft")) setPlayerSpudPosition(spudX - PLAYER_SPEED * dt, spudY);
-  if (keysHeld.has("ArrowRight")) setPlayerSpudPosition(spudX + PLAYER_SPEED * dt, spudY);
-  if (keysHeld.has("ArrowUp")) setPlayerSpudPosition(spudX, spudY - PLAYER_SPEED * dt);
-  if (keysHeld.has("ArrowDown")) setPlayerSpudPosition(spudX, spudY + PLAYER_SPEED * dt);
+  if (keysHeld.has("ArrowLeft")) setBasketPosition(basketX - PLAYER_SPEED * dt, basketY);
+  if (keysHeld.has("ArrowRight")) setBasketPosition(basketX + PLAYER_SPEED * dt, basketY);
+  if (keysHeld.has("ArrowUp")) setBasketPosition(basketX, basketY - PLAYER_SPEED * dt);
+  if (keysHeld.has("ArrowDown")) setBasketPosition(basketX, basketY + PLAYER_SPEED * dt);
 
+  checkBarnDeposit();
   checkCollections();
 
   spawnTimer += dt;
@@ -271,15 +325,15 @@ function step(timestamp) {
     spawnInterval = getSpawnInterval();
     const batchCount = getSpawnBatchCount();
     for (let i = 0; i < batchCount; i += 1) {
-      if (miniSpuds.length >= MAX_MINI_SPUDS) break;
+      if (miniSpuds.length >= MAX_SPUDS_ON_FIELD) break;
       createMiniSpud();
     }
   }
 
   updateHud();
 
-  if (miniSpuds.length >= MAX_MINI_SPUDS) {
-    endRun("Too many spuds left behind!");
+  if (miniSpuds.length >= MAX_SPUDS_ON_FIELD) {
+    endRun("The field overflowed with spuds!");
     return;
   }
 
@@ -293,7 +347,7 @@ function step(timestamp) {
 
 function startRun() {
   clearMiniSpuds();
-  resetPlayerSpud();
+  resetBasket();
 
   score = 0;
   timeLeft = RUN_DURATION_SECONDS;
@@ -302,6 +356,7 @@ function startRun() {
   spawnInterval = getSpawnInterval();
   elapsedSeconds = 0;
   lastFrame = 0;
+  wasAtBarn = false;
   keysHeld.clear();
   running = true;
 
@@ -373,13 +428,13 @@ function bindEvents() {
   claimRewardBtn.addEventListener("click", claimReward);
   window.addEventListener("keydown", handleKeyDown);
   window.addEventListener("keyup", handleKeyUp);
-  window.addEventListener("resize", resetPlayerSpud);
+  window.addEventListener("resize", resetBasket);
 }
 
 function init() {
   loadBestScore();
-  applySpriteIfAvailable(playerSpud, getSelectedAvatarForCurrentProgress().src || SPRITE_ASSETS.playerSpud);
-  resetPlayerSpud();
+  avatarSrc = getSelectedAvatarForCurrentProgress().src || "";
+  resetBasket();
   updateHud();
   setStatus("Ready");
   bindEvents();

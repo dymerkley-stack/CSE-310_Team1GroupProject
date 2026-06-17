@@ -17,7 +17,7 @@
 
       <section class="harvest-intro">
         <p>
-          Guide your spud across the field and glide over the mini potatoes to collect them and watch it grow!
+          Collect spuds with your basket and deliver them to the barn before the field overflows!
         </p>
       </section>
 
@@ -25,14 +25,17 @@
         <p>Score: <strong id="harvestScore">0</strong></p>
         <p>Best: <strong id="harvestBest">0</strong></p>
         <p>Time: <strong id="harvestTime">50</strong>s</p>
-        <p>Size: <strong id="harvestSize">60</strong></p>
+        <p>Basket: <strong id="harvestBasket">0 / 10</strong></p>
         <p>Status: <strong id="harvestStatus">Ready</strong></p>
       </section>
 
+      <div id="harvestBonusBar" class="harvest-bonus-bar" aria-live="polite"></div>
+
       <section class="harvest-game-area">
         <div id="harvestArena" class="harvest-arena" role="application" aria-label="Potato Harvest Dash arena">
+          <div id="barnElement" class="barn-element" aria-label="Barn" role="img"></div>
           <div id="miniSpudsLayer" class="mini-spuds-layer" aria-hidden="true"></div>
-          <div id="playerSpud" class="player-spud" aria-label="Your spud" role="img"></div>
+          <div id="playerBasket" class="player-basket" aria-label="Your basket" role="img"></div>
         </div>
       </section>
 
@@ -43,8 +46,8 @@
 
       <section class="harvest-help">
         <p>
-          Use the <strong>arrow keys</strong> to glide your spud over the mini potatoes and collect them.
-          Don't let too many pile up — the field can only hold so many!
+          Use the <strong>arrow keys</strong> to move your basket over spuds to collect them.
+          When your basket has <strong>10 spuds</strong>, carry them to the <strong>barn</strong> to deposit and score!
         </p>
       </section>
     </main>
