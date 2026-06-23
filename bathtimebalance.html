@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bath Time Balance</title>
+    <title>Potato Harvest Dash</title>
     <link rel="stylesheet" href="styles.css" />
     <body style="background-image: url('Images/Dawn.webp');"></body>
   </head>
@@ -11,50 +11,43 @@
     <main class="wireframe" aria-live="polite">
       <section class="mini-games-header">
         <a href="minigames.html" class="nav-link">&larr; Back to Mini Games</a>
-        <h1>Bath Time Balance</h1>
+        <h1>Potato Harvest Dash</h1>
         <a href="index.html" class="nav-link">Home &rarr;</a>
       </section>
 
-      <section class="bath-intro">
+      <section class="harvest-intro">
         <p>
-          Keep the water in the comfort zone while cleaning muddy spots. A
-          balanced bath gives better rewards.
+          Collect spuds with your basket and deliver them to the barn before the field overflows!
         </p>
       </section>
 
-      <section class="bath-hud" aria-label="Bath Time Balance game stats">
-        <p>Score: <strong id="bathScore">0</strong></p>
-        <p>Best: <strong id="bathBest">0</strong></p>
-        <p>Time: <strong id="bathTime">50</strong>s</p>
-        <p>Temp: <strong id="bathTemp">50</strong></p>
-        <p>Status: <strong id="bathStatus">Ready</strong></p>
+      <section class="harvest-hud" aria-label="Potato Harvest Dash stats">
+        <p>Score: <strong id="harvestScore">0</strong></p>
+        <p>Best: <strong id="harvestBest">0</strong></p>
+        <p>Time: <strong id="harvestTime">50</strong>s</p>
+        <p>Basket: <strong id="harvestBasket">0 / 10</strong></p>
+        <p>Status: <strong id="harvestStatus">Ready</strong></p>
       </section>
 
-      <section class="bath-game-area">
-        <div id="bathArena" class="bath-arena" role="application" aria-label="Bath Time Balance game arena">
-          <div class="bath-temp-meter" aria-hidden="true">
-            <div class="bath-zone bath-zone--cold"></div>
-            <div class="bath-zone bath-zone--comfort"></div>
-            <div class="bath-zone bath-zone--hot"></div>
-            <div id="bathTempNeedle" class="bath-temp-needle"></div>
-          </div>
-          <div id="bathPet" class="bath-pet" aria-hidden="true"></div>
-          <div id="bathSpotsLayer" class="bath-spots-layer" aria-label="Dirty spots"></div>
-          <div id="bathSponge" class="bath-sponge" aria-label="Sponge tool" role="img"></div>
+      <div id="harvestBonusBar" class="harvest-bonus-bar" aria-live="polite"></div>
+
+      <section class="harvest-game-area">
+        <div id="harvestArena" class="harvest-arena" role="application" aria-label="Potato Harvest Dash arena">
+          <div id="barnElement" class="barn-element" aria-label="Barn" role="img"></div>
+          <div id="miniSpudsLayer" class="mini-spuds-layer" aria-hidden="true"></div>
+          <div id="playerBasket" class="player-basket" aria-label="Your basket" role="img"></div>
         </div>
       </section>
 
-      <section class="bath-controls">
-        <button id="coolBathBtn" type="button" class="secondary">Cool Water</button>
-        <button id="heatBathBtn" type="button" class="secondary">Warm Water</button>
-        <button id="startBathBtn" type="button" class="primary-btn">Start Bath</button>
-        <button id="claimBathRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
+      <section class="harvest-controls">
+        <button id="startHarvestBtn" type="button" class="primary-btn">Start Harvest</button>
+        <button id="claimHarvestRewardBtn" type="button" class="secondary" disabled>Claim Reward</button>
       </section>
 
-      <section class="bath-help">
+      <section class="harvest-help">
         <p>
-          Tip: Drag the sponge over muddy spots while the temperature marker stays
-          in the green zone.
+          Use the <strong>arrow keys</strong> to move your basket over spuds to collect them.
+          When your basket has <strong>10 spuds</strong>, carry them to the <strong>barn</strong> to deposit and score!
         </p>
       </section>
     </main>
