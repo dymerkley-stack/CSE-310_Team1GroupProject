@@ -98,11 +98,13 @@ export async function loadLatestState() {
 }
 
 export async function saveToCloud(state) {
-  console.log("SAVE CALLED", structuredClone(state));
   const user = await getCurrentUser();
-  const playerId = getPlayerId();
+  console.log("USER DURING SAVE:", user);
 
-  if (!user) return null;
+  if (!user) {
+    console.log("SAVE ABORTED - NO USER");
+    return null;
+  }
 
   const saveData = {
     user_id: user.id,
