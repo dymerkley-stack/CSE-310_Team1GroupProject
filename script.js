@@ -64,6 +64,7 @@ export async function syncCloudSave() {
         checkins: cloudData.checkins,
       });
     }
+    syncProgressModels();
   }
 
   if (cloudData) {
@@ -86,8 +87,14 @@ function syncProgressModels() {
 
 async function initializeGame() {
   await syncCloudSave();
-  syncProgressModels();
-  console.log("State after cloud sync:", state);
+
+  loadProgress();
+  loadWellnessState();
+  loadDailyTasks();
+
+  renderTaskList();
+  renderTabs();
+  render();
 }
 
 const wellnessKeys = [
@@ -121,8 +128,6 @@ const DEFAULT_CATEGORY_POINTS = {
   intellectual: 20,
   spiritual: 18,
 };
-initializeGame();
-// testDatabase();
 
 const taskPools = {
   physical: [
@@ -1205,10 +1210,14 @@ document.getElementById("signupBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("loginBtn").addEventListener("click", async () => {
-  await signIn(
+  const result = await signIn(
     document.getElementById("email").value,
     document.getElementById("password").value,
   );
+
+  if (result.data?.user && !result.error) {
+    await initializeGame(); // or syncCloudSave()
+  }
 });
 
 resetBtn.addEventListener("click", resetGame);
@@ -1326,10 +1335,3 @@ function updateTimers() {
 // start timer loop
 updateTimers();
 setInterval(updateTimers, 1000);
-
-loadProgress();
-loadWellnessState();
-loadDailyTasks();
-renderTaskList();
-renderTabs();
-render();
