@@ -17,12 +17,12 @@ const WELLNESS_STATE_KEY = "wellnessState";
 const SPRITE_ASSETS = {
   cardBack: "",
   cards: {
-    syringe: "",
-    bandage: "",
-    stethoscope: "",
-    medicine: "",
-    thermometer: "",
-    heartMonitor: "",
+    syringe: "images/wormy.png",
+    bandage: "images/potato_sack.png",
+    stethoscope: "images/sprout_bros.png",
+    medicine: "images/sun.png",
+    thermometer: "images/rain_cloud.png",
+    heartMonitor: "images/watering_can.png",
   },
 };
 
@@ -108,6 +108,8 @@ function loadSprite(path) {
 }
 
 function enableSprite(element, path) {
+  console.log("Sprite loaded:", path);
+  
   element.classList.add("vet-uses-sprite");
   element.style.backgroundImage = `url("${path}")`;
 }

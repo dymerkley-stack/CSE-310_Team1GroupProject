@@ -1553,7 +1553,15 @@ body {
 }
 
 .vet-card-face.vet-uses-sprite {
-  border-color: transparent;
+  border-color: red;
+  background-size: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.vet-card-face.vet-uses-sprite .vet-card-glyph,
+.vet-card-face.vet-uses-sprite .vet-card-label {
+  display: none;
 }
 
 .vet-card-face.vet-uses-sprite .vet-card-glyph {
