@@ -376,6 +376,32 @@ function step(timestamp) {
 }
 
 function startRun() {
+  // --- Check and Deduct Physical Cost ---
+  const raw = localStorage.getItem(WELLNESS_STATE_KEY);
+  let data = { physical: 50, mental: 50, social: 50, intellectual: 50, spiritual: 50 }; // fallbacks matching script.js
+  
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      // Keep defaults if corrupted
+    }
+  }
+
+  // Ensure they have enough points to play
+  if ((data.physical || 0) < 10) {
+    setStatus("Not enough Physical energy! Need 10 points.");
+    return; // Stop execution; run doesn't start
+  }
+
+  // Deduct the cost
+  data.physical = clamp(Math.round(data.physical) - 10, 0, 100);
+  localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
+
+  // Dispatch an event to tell script.js (if open on the same page) to update its UI bars
+  window.dispatchEvent(new Event("storage"));
+  // --------------------------------------
+
   clearObstacles();
   computeLaneHeights();
 

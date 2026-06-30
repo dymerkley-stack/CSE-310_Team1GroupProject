@@ -387,6 +387,31 @@ function step(timestamp) {
 }
 
 function startRun() {
+  const raw = localStorage.getItem(WELLNESS_STATE_KEY);
+  let data = { physical: 50, mental: 50, social: 50, intellectual: 50, spiritual: 50 }; // fallbacks matching script.js
+  
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      // Keep defaults if corrupted
+    }
+  }
+
+  // Ensure they have enough points to play
+  if ((data.intellectual || 0) < 10) {
+    setStatus("Not enough Intellectual energy! Need 10 points.");
+    return; // Stop execution; run doesn't start
+  }
+
+  // Deduct the cost
+  data.intellectual = clamp(Math.round(data.intellectual) - 10, 0, 100);
+  localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
+
+  // Dispatch an event to tell script.js (if open on the same page) to update its UI bars
+  window.dispatchEvent(new Event("storage"));
+  // --------------------------------------
+
   buildBoard();
 
   score = 0;
@@ -415,7 +440,7 @@ function startRun() {
 function applyReward(points) {
   const raw = localStorage.getItem(WELLNESS_STATE_KEY);
   let data = {
-    physical: 70,
+    Intellectual: 70,
     mental: 70,
     social: 70,
     intellectual: 70,
@@ -426,7 +451,7 @@ function applyReward(points) {
     try {
       const parsed = JSON.parse(raw);
       data = {
-        physical: Number.isFinite(parsed?.physical) ? parsed.physical : 70,
+        Intellectual: Number.isFinite(parsed?.Intellectual) ? parsed.Intellectual : 70,
         mental: Number.isFinite(parsed?.mental) ? parsed.mental : 70,
         social: Number.isFinite(parsed?.social) ? parsed.social : 70,
         intellectual: Number.isFinite(parsed?.intellectual) ? parsed.intellectual : 70,
@@ -440,7 +465,7 @@ function applyReward(points) {
   const healthGain = points;
   const intellectualGain = Math.max(1, Math.ceil(points / 2));
 
-  data.physical = clamp(Math.round(data.physical) + healthGain, 0, 100);
+  data.Intellectual = clamp(Math.round(data.Intellectual) + healthGain, 0, 100);
   data.intellectual = clamp(Math.round(data.intellectual) + intellectualGain, 0, 100);
 
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));

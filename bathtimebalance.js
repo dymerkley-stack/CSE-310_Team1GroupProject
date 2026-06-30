@@ -160,8 +160,8 @@ function collectMiniSpud(miniSpudData) {
 function showBonusBar(message, stat) {
   if (bonusBarTimeout) clearTimeout(bonusBarTimeout);
   bonusBar.textContent = message;
-  bonusBar.classList.remove("harvest-bonus-bar--physical", "harvest-bonus-bar--mental");
-  bonusBar.classList.add(stat === "Physical" ? "harvest-bonus-bar--physical" : "harvest-bonus-bar--mental");
+  bonusBar.classList.remove("harvest-bonus-bar--social", "harvest-bonus-bar--mental");
+  bonusBar.classList.add(stat === "social" ? "harvest-bonus-bar--social" : "harvest-bonus-bar--mental");
   bonusBar.classList.add("harvest-bonus-bar--visible");
   bonusBarTimeout = setTimeout(() => {
     bonusBar.classList.remove("harvest-bonus-bar--visible");
@@ -171,12 +171,12 @@ function showBonusBar(message, stat) {
 
 function applyFullBasketBonus() {
   const raw = localStorage.getItem(WELLNESS_STATE_KEY);
-  let data = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+  let data = { social: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
       data = {
-        physical: Number.isFinite(parsed?.physical) ? parsed.physical : 70,
+        social: Number.isFinite(parsed?.social) ? parsed.social : 70,
         mental: Number.isFinite(parsed?.mental) ? parsed.mental : 70,
         social: Number.isFinite(parsed?.social) ? parsed.social : 70,
         intellectual: Number.isFinite(parsed?.intellectual) ? parsed.intellectual : 70,
@@ -186,10 +186,10 @@ function applyFullBasketBonus() {
       // Keep defaults when saved data cannot be parsed.
     }
   }
-  const stat = Math.random() < 0.5 ? "physical" : "mental";
+  const stat = Math.random() < 0.5 ? "social" : "mental";
   data[stat] = clamp(Math.round(data[stat]) + 5, 0, 100);
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
-  return stat === "physical" ? "Physical" : "Mental";
+  return stat === "social" ? "social" : "Mental";
 }
 
 function depositAtBarn() {
@@ -298,7 +298,7 @@ function endRun(reasonMessage) {
   rewardPending = Math.max(rewardPending, reward);
   claimRewardBtn.disabled = false;
   startBtn.textContent = "Start New Harvest";
-  setStatus(`${reasonMessage} Reward ready: +${reward} Physical and +${Math.max(1, Math.ceil(reward / 2))} Mental`);
+  setStatus(`${reasonMessage} Reward ready: +${reward} social and +${Math.max(1, Math.ceil(reward / 2))} Mental`);
 }
 
 function step(timestamp) {
@@ -346,6 +346,32 @@ function step(timestamp) {
 }
 
 function startRun() {
+
+  const raw = localStorage.getItem(WELLNESS_STATE_KEY);
+  let data = { physical: 50, mental: 50, social: 50, intellectual: 50, spiritual: 50 }; // fallbacks matching script.js
+  
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      // Keep defaults if corrupted
+    }
+  }
+
+  // Ensure they have enough points to play
+  if ((data.social || 0) < 10) {
+    setStatus("Not enough social energy! Need 10 points.");
+    return; // Stop execution; run doesn't start
+  }
+
+  // Deduct the cost
+  data.social = clamp(Math.round(data.social) - 10, 0, 100);
+  localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
+
+  // Dispatch an event to tell script.js (if open on the same page) to update its UI bars
+  window.dispatchEvent(new Event("storage"));
+  // --------------------------------------
+
   clearMiniSpuds();
   resetBasket();
 
@@ -372,13 +398,13 @@ function startRun() {
 
 function applyReward(points) {
   const raw = localStorage.getItem(WELLNESS_STATE_KEY);
-  let data = { physical: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
+  let data = { social: 70, mental: 70, social: 70, intellectual: 70, spiritual: 70 };
 
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
       data = {
-        physical: Number.isFinite(parsed?.physical) ? parsed.physical : 70,
+        social: Number.isFinite(parsed?.social) ? parsed.social : 70,
         mental: Number.isFinite(parsed?.mental) ? parsed.mental : 70,
         social: Number.isFinite(parsed?.social) ? parsed.social : 70,
         intellectual: Number.isFinite(parsed?.intellectual) ? parsed.intellectual : 70,
@@ -389,12 +415,12 @@ function applyReward(points) {
     }
   }
 
-  const physicalGain = points;
+  const socialGain = points;
   const mentalGain = Math.max(1, Math.ceil(points / 2));
-  data.physical = clamp(Math.round(data.physical) + physicalGain, 0, 100);
+  data.social = clamp(Math.round(data.social) + socialGain, 0, 100);
   data.mental = clamp(Math.round(data.mental) + mentalGain, 0, 100);
   localStorage.setItem(WELLNESS_STATE_KEY, JSON.stringify(data));
-  return { physicalGain, mentalGain };
+  return { socialGain, mentalGain };
 }
 
 function claimReward() {
@@ -403,7 +429,7 @@ function claimReward() {
   const gains = applyReward(points);
   rewardPending = 0;
   claimRewardBtn.disabled = true;
-  setStatus(`Reward applied: +${gains.physicalGain} Physical and +${gains.mentalGain} Mental`);
+  setStatus(`Reward applied: +${gains.socialGain} social and +${gains.mentalGain} Mental`);
 }
 
 const ARROW_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
