@@ -27,7 +27,7 @@ const SPRITE_ASSETS = {
 };
 
 const RUN_DURATION_SECONDS = 70;
-const START_LIVES = 4;
+const START_LIVES = 10;
 const PAIR_TYPES = ["syringe", "bandage", "stethoscope", "medicine", "thermometer", "heartMonitor"];
 const PAIR_GOAL = PAIR_TYPES.length;
 const BASE_MATCH_SCORE = 14;
